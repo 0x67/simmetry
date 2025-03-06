@@ -1,0 +1,36 @@
+[package]
+name = "api_server"
+version = "0.1.0"
+edition = "2021"
+
+#[build]
+#target-dir = "dist/target/api_server"
+
+[dependencies]
+rmpv = { version = "*", features = ["with-serde"] }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_bytes = "0.11.17"
+serde_derive = "1.0.219"
+serde_json = "1.0.140"
+tokio = { version = "1.41.1", features = ["full"] }
+bincode = { version = "2.0.1", features = ["serde", "derive"] }
+binrw = "0.14.1"
+bitflags = "2.9.0"
+tower = { version = "*", default-features = false }
+tracing = "*"
+tracing-subscriber = { version = "*", features = ["env-filter"] }
+futures = "*"
+futures-util = "0.3.31"
+axum = "0.8.1"
+hyper-util.version = "*"
+hyper = { version = "*", features = ["http1", "server"] }
+socketioxide = "*"
+socketioxide-redis = { version = "*", features = [
+  "redis",
+  "redis-cluster",
+  "fred",
+] }
+rand = "0.9.0"
+redis = { version = "0.29.1", features = ["aio", "tokio-comp"] }
+sysinfo = "0.33.1"
+uuid = { version = "1.15.1", features = ["v4", "serde", "v7"] }

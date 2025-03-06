@@ -1,0 +1,41 @@
+[package]
+name = "simmetry"
+version = "0.0.1"
+description = "Simmetry - All in one apps for sim racing telemetry"
+authors = ["NicolaSpadari"]
+license = "MIT"
+repository = "https://github.com/0x67/simmetry"
+edition = "2021"
+
+[lib]
+name = "simmetry_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+#[build]
+#target-dir = "dist/target/client_tauri"
+
+[build-dependencies.tauri-build]
+version = "2.0.5"
+features = []
+
+[dependencies]
+bincode = { version = "2.0.1", features = ["serde", "derive"] }
+tauri-plugin-shell = "2.2.0"
+tauri-plugin-notification = "2.2.1"
+tauri-plugin-os = "2.2.0"
+tauri-plugin-fs = "2.2.0"
+tauri-plugin-store = "2.2.0"
+tauri-plugin-sentry = "0.4"
+futures-util = "*"
+rand = "0.9"
+rust_socketio = { version = "*", features = ["async"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1"
+strum = "0.27"
+strum_macros = "0.27"
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1.15.1", features = ["v4", "serde", "v7"] }
+
+[dependencies.tauri]
+version = "2.2.5"
+features = ["tray-icon"]
