@@ -1,17 +1,16 @@
 use crate::app_state::AppState;
+use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
 use crate::constants::GameType;
 use crate::ws_server::create_or_get_ws_client;
-use bincode::{Decode, Encode};
-use futures_util::future::Future;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{net::IpAddr, sync::Arc};
+use std::sync::Arc;
 use tauri::async_runtime::spawn;
 use tauri::State;
 use tokio::net::UdpSocket;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUdpListenerPayload {
@@ -40,33 +39,6 @@ impl CreateUdpListenerPayload {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StopUdpListenerPayload {
-    pub port: u16,
-    pub host: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UdpSuccessResponse {
-    pub message: String,
-    pub success: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UdpErrorResponse {
-    pub message: String,
-    pub success: bool,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Encode, Decode)]
-struct WebsocketPayload {
-    #[bincode(with_serde)]
-    id: Uuid,
-    game_type: GameType,
-    timestamp: u128,
-    data: Vec<u8>,
-}
-
 #[tauri::command(rename_all = "snake_case")]
 pub async fn create_udp_listener(
     payload: CreateUdpListenerPayload,
@@ -81,6 +53,7 @@ pub async fn create_udp_listener(
 
     let addr = format!("0.0.0.0:{}", payload.port);
 
+    // TODO: When first bind, returns early but emit event later whether it's bound or not
     let socket = UdpSocket::bind(&addr).await.map_err(|e| UdpErrorResponse {
         message: format!("Failed to bind UDP socket: {}", e),
         success: false,
@@ -135,27 +108,5 @@ pub async fn create_udp_listener(
     Ok(UdpSuccessResponse {
         message: format!("UDP listener created on {}", addr),
         success: true,
-    })
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub async fn stop_udp_listener(
-    payload: StopUdpListenerPayload,
-    state: State<'_, Mutex<AppState>>,
-) -> Result<UdpSuccessResponse, UdpErrorResponse> {
-    let mut state = state.lock().await;
-
-    if let Some((_, shutdown_flag)) = state.udp_listeners.remove(&payload.port) {
-        shutdown_flag.store(true, Ordering::Relaxed);
-        println!("Stopping UDP listener on port {}", payload.port);
-        return Ok(UdpSuccessResponse {
-            message: format!("UDP Listener stopped on port {}", payload.port),
-            success: true,
-        });
-    }
-
-    Err(UdpErrorResponse {
-        message: format!("No active UDP listener found on port {}", payload.port),
-        success: false,
     })
 }
