@@ -88,6 +88,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "socketioxide",
+ "socketioxide-parser-msgpack",
  "socketioxide-redis",
  "sysinfo",
  "tokio",
@@ -4763,6 +4764,8 @@ dependencies = [
  "bincode",
  "futures-util",
  "rand 0.9.0",
+ "rmp",
+ "rmp-serde",
  "rust_socketio",
  "serde",
  "serde_json",
@@ -4881,6 +4884,19 @@ dependencies = [
  "itoa 1.0.15",
  "serde",
  "serde_json",
+ "socketioxide-core",
+]
+
+[[package]]
+name = "socketioxide-parser-msgpack"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c93982a65ff2cbaedc140793396a54fdffba935259b85df97fd4f858b407b26"
+dependencies = [
+ "bytes",
+ "rmp",
+ "rmp-serde",
+ "serde",
  "socketioxide-core",
 ]
 

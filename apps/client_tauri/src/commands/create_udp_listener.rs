@@ -2,6 +2,8 @@ use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
 use crate::constants::GameType;
 use crate::ws_server::create_or_get_ws_client;
+use bincode::{Decode, Encode};
+use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -10,13 +12,14 @@ use std::sync::Arc;
 use tauri::async_runtime::spawn;
 use tauri::State;
 use tokio::net::UdpSocket;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
+use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateUdpListenerPayload {
     pub game_type: GameType,
     pub port: u16,
-    /// Format: `"host:port"`
+    /// Format: "host:port"
     pub forward_ports: Option<Vec<String>>,
 }
 impl CreateUdpListenerPayload {
@@ -39,6 +42,15 @@ impl CreateUdpListenerPayload {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Encode, Decode)]
+struct WebsocketPayload {
+    #[bincode(with_serde)]
+    id: Uuid,
+    game_type: GameType,
+    timestamp: u128,
+    data: Vec<u8>,
+}
+
 #[tauri::command(rename_all = "snake_case")]
 pub async fn create_udp_listener(
     payload: CreateUdpListenerPayload,
@@ -52,8 +64,6 @@ pub async fn create_udp_listener(
     }
 
     let addr = format!("0.0.0.0:{}", payload.port);
-
-    // TODO: When first bind, returns early but emit event later whether it's bound or not
     let socket = UdpSocket::bind(&addr).await.map_err(|e| UdpErrorResponse {
         message: format!("Failed to bind UDP socket: {}", e),
         success: false,
@@ -63,20 +73,20 @@ pub async fn create_udp_listener(
     let shutdown_flag = Arc::new(AtomicBool::new(false));
     let ws_client = create_or_get_ws_client(payload.game_type, state.clone()).await;
     let mut state = state.lock().await;
-    {
-        if state.udp_listeners.contains_key(&payload.port) {
-            return Err(UdpErrorResponse {
-                message: format!("Port {} is already in use", payload.port),
-                success: false,
-            });
-        }
-        state
-            .udp_listeners
-            .insert(payload.port, (socket.clone(), shutdown_flag.clone()));
+
+    if state.udp_listeners.contains_key(&payload.port) {
+        return Err(UdpErrorResponse {
+            message: format!("Port {} is already in use", payload.port),
+            success: false,
+        });
     }
 
+    state
+        .udp_listeners
+        .insert(payload.port, (socket.clone(), shutdown_flag.clone()));
     println!("Creating UDP listener on port {}", payload.port);
 
+    let (tx, mut rx) = mpsc::channel::<(Vec<u8>, std::net::SocketAddr)>(100);
     let cloned_socket = Arc::clone(&socket);
     let cloned_shutdown_flag = Arc::clone(&shutdown_flag);
 
@@ -87,13 +97,12 @@ pub async fn create_udp_listener(
                 Ok((size, src)) => {
                     let sliced_buf = buf[..size].to_vec();
                     println!("Received {} bytes from {}", size, src);
-                    println!("Sliced buffer: {:?}", sliced_buf);
-                    if let Err(e) = ws_client.emit("message", sliced_buf).await {
-                        println!("Failed to emit WebSocket message: {}", e);
-                    };
+                    if let Err(_) = tx.send((sliced_buf, src)).await {
+                        println!("Failed to queue UDP packet for WebSocket emission");
+                    }
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    tokio::task::yield_now().await; // Avoid busy looping
+                    tokio::task::yield_now().await;
                     continue;
                 }
                 Err(e) => {
@@ -103,6 +112,30 @@ pub async fn create_udp_listener(
             }
         }
         println!("UDP Listener stopped on port {}", payload.port);
+    });
+
+    spawn(async move {
+        while let Some((data, _)) = rx.recv().await {
+            let ts = timestamp::Timestamp::now(ContextV7::new());
+
+            let (seconds, nanos) = ts.to_unix();
+            let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
+
+            let payload = WebsocketPayload {
+                id: Uuid::new_v7(ts),
+                game_type: payload.game_type,
+                timestamp: ts_nanos,
+                data,
+            };
+
+            let mut buf = Vec::new();
+
+            payload.serialize(&mut Serializer::new(&mut buf)).unwrap();
+
+            if let Err(e) = ws_client.emit("message", buf).await {
+                println!("Failed to emit WebSocket message: {}", e);
+            }
+        }
     });
 
     Ok(UdpSuccessResponse {

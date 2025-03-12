@@ -30,7 +30,8 @@ socketioxide-redis = { version = "*", features = [
   "redis-cluster",
   "fred",
 ] }
+socketioxide-parser-msgpack = "0.16.0"
 rand = "0.9.0"
 redis = { version = "0.29.1", features = ["aio", "tokio-comp"] }
 sysinfo = "0.33.1"
-uuid = { version = "1.15.1", features = ["v4", "serde", "v7"] }
+uuid = { version = "1.15.1", features = ["serde", "v7"] }

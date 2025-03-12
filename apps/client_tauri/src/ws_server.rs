@@ -1,11 +1,6 @@
 use std::sync::Arc;
 
-use rust_socketio::{
-    asynchronous::{Client, ClientBuilder},
-    Payload,
-};
-use serde_json::json;
-use tauri::async_runtime::spawn_blocking;
+use rust_socketio::asynchronous::ClientBuilder;
 use tauri::State;
 use tokio::sync::Mutex;
 
