@@ -12,12 +12,12 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     socket.emit("auth", &data).ok();
 
     socket.on("message", |socket: SocketRef, Data::<Value>(data)| {
-        info!(?data, "Received event:");
+        // info!(?data, "Received event:");
         socket.emit("message-back", &data).ok();
     });
 
     socket.on("message-with-ack", |Data::<Value>(data), ack: AckSender| {
-        info!(?data, "Received event");
+        // info!(?data, "Received event");
         ack.send(&data).ok();
     });
 }

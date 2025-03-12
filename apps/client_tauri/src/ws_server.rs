@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
+use futures_util::FutureExt;
 use rust_socketio::asynchronous::ClientBuilder;
+use rust_socketio::TransportType;
 use tauri::State;
 use tokio::sync::Mutex;
 
@@ -20,7 +22,14 @@ pub async fn create_or_get_ws_client(
 
     let client = Arc::new(
         ClientBuilder::new(url)
+            .transport_type(TransportType::Websocket)
             .namespace(game_type.to_string())
+            .on("error", |err, _| {
+                async move { eprintln!("Error: {:#?}", err) }.boxed()
+            })
+            .on("close", |event, _| {
+                async move { eprintln!("Close: {:#?}", event) }.boxed()
+            })
             .connect()
             .await
             .expect("Unable to connect to WebSocket"),

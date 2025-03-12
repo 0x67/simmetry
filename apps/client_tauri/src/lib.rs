@@ -1,13 +1,21 @@
-pub mod app_state;
-pub mod commands;
-pub mod constants;
-pub mod ws_server;
+mod app_state;
+mod commands;
+mod constants;
+mod log;
+mod setup;
+mod ws_server;
 
+use std::env;
+
+use crate::app_state::AppState;
+use crate::log::{debug, error, info, trace, warn};
 use commands::{create_udp_listener::create_udp_listener, stop_udp_listener::stop_udp_listener};
+use setup::setup_logging;
 use tauri::Manager;
 use tokio::sync::Mutex;
 
-use crate::app_state::AppState;
+#[macro_use]
+extern crate tracing;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 use tauri::{
@@ -17,6 +25,14 @@ use tauri::{
 };
 
 pub fn run() {
+    // setup_logging();
+
+    info!("Operating System: {}", env::consts::OS);
+    info!("OS Version: {}", os_info::get().version());
+    info!("Architecture: {}", env::consts::ARCH);
+
+    info!("Initializing application");
+
     Builder::default()
         .setup(|app| {
             app.manage(Mutex::new(AppState::default()));
@@ -45,6 +61,11 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            trace,
+            debug,
+            info,
+            warn,
+            error,
             create_udp_listener,
             stop_udp_listener
         ])

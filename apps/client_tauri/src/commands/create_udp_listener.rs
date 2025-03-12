@@ -3,7 +3,7 @@ use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
 use crate::constants::GameType;
 use crate::ws_server::create_or_get_ws_client;
 use bincode::{Decode, Encode};
-use rmp_serde::{Deserializer, Serializer};
+use rmp_serde::{decode, encode, from_slice, to_vec, Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -13,6 +13,7 @@ use tauri::async_runtime::spawn;
 use tauri::State;
 use tokio::net::UdpSocket;
 use tokio::sync::{mpsc, Mutex};
+use tracing::{error, info};
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,7 +85,7 @@ pub async fn create_udp_listener(
     state
         .udp_listeners
         .insert(payload.port, (socket.clone(), shutdown_flag.clone()));
-    println!("Creating UDP listener on port {}", payload.port);
+    info!("Creating UDP listener on port {}", payload.port);
 
     let (tx, mut rx) = mpsc::channel::<(Vec<u8>, std::net::SocketAddr)>(100);
     let cloned_socket = Arc::clone(&socket);
@@ -96,9 +97,9 @@ pub async fn create_udp_listener(
             match cloned_socket.recv_from(&mut buf).await {
                 Ok((size, src)) => {
                     let sliced_buf = buf[..size].to_vec();
-                    println!("Received {} bytes from {}", size, src);
+                    // println!("Received {} bytes from {}", size, src);
                     if let Err(_) = tx.send((sliced_buf, src)).await {
-                        println!("Failed to queue UDP packet for WebSocket emission");
+                        error!("Failed to queue UDP packet for WebSocket emission");
                     }
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -106,12 +107,12 @@ pub async fn create_udp_listener(
                     continue;
                 }
                 Err(e) => {
-                    println!("Error receiving packet: {}", e);
+                    error!("Error receiving packet: {}", e);
                     break;
                 }
             }
         }
-        println!("UDP Listener stopped on port {}", payload.port);
+        info!("UDP Listener stopped on port {}", payload.port);
     });
 
     spawn(async move {
@@ -128,11 +129,15 @@ pub async fn create_udp_listener(
                 data,
             };
 
-            let mut buf = Vec::new();
+            let json_string = serde_json::to_string(&payload).unwrap();
+            info!("JSON string: {}", json_string);
 
-            payload.serialize(&mut Serializer::new(&mut buf)).unwrap();
+            // TODO: this cause an error after every
+            // Serialize to MessagePack format
+            // let buf = to_vec(&payload).expect("Failed to serialize");
+            // info!("Serialized: {:?}", buf);
 
-            if let Err(e) = ws_client.emit("message", buf).await {
+            if let Err(e) = ws_client.emit("message", json_string).await {
                 println!("Failed to emit WebSocket message: {}", e);
             }
         }
