@@ -32,6 +32,7 @@ strum = "0.27.1"
 strum_macros = "0.27.1"
 tauri = { version = "2.3.1", features = ["tray-icon"] }
 tauri-plugin-fs = "2.2.0"
+tauri-plugin-log = "2.3.1"
 tauri-plugin-notification = "2.2.2"
 tauri-plugin-os = "2.2.1"
 tauri-plugin-sentry = "0.4.1"

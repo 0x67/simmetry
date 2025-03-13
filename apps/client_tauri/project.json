@@ -8,7 +8,7 @@
       "cache": true,
       "executor": "nx:run-commands",
       "options": {
-        "command": "cross-env CARGO_BUILD_TARGET_DIR=../../dist/target/client_tauri pnpm tauri dev --verbose"
+        "command": "cross-env CARGO_BUILD_TARGET_DIR=../../dist/target/client_tauri RUST_BACKTRACE=1 pnpm tauri dev --verbose"
       }
     },
     "build": {

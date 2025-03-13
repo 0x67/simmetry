@@ -11,14 +11,14 @@ pub fn setup_logging() {
 
     let timer = OffsetTime::new(offset!(+8), fmt);
 
-    // #[cfg(all(desktop, not(debug_assertions)))]
-    // let writer = {
-    //     use crate::global::APP_CONFIG_DIR;
-    //     use std::{fs::File, sync::Mutex};
-    //     let log_file =
-    //         File::create(APP_CONFIG_DIR.join("lsar.log")).expect("Failed to create the log file");
-    //     Mutex::new(log_file)
-    // };
+    #[cfg(all(desktop, not(debug_assertions)))]
+    let writer = {
+        use crate::global::APP_CONFIG_DIR;
+        use std::{fs::File, sync::Mutex};
+        let log_file = File::create(APP_CONFIG_DIR.join("simmetry.log"))
+            .expect("Failed to create the log file");
+        Mutex::new(log_file)
+    };
 
     #[cfg(any(debug_assertions, mobile))]
     let writer = std::io::stderr;
@@ -27,13 +27,13 @@ pub fn setup_logging() {
         .with_max_level(Level::TRACE)
         .with_file(true)
         .with_line_number(true)
-        .with_env_filter("lsar_lib")
+        .with_env_filter("simmetry_lib")
         .with_target(false)
         .with_timer(timer)
         .with_writer(writer);
 
     if cfg!(debug_assertions) {
-        builder.init();
+        builder.pretty().init();
     } else {
         builder.json().init();
     }

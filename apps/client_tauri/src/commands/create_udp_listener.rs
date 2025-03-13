@@ -13,7 +13,6 @@ use tauri::async_runtime::spawn;
 use tauri::State;
 use tokio::net::UdpSocket;
 use tokio::sync::{mpsc, Mutex};
-use tracing::{error, info};
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
