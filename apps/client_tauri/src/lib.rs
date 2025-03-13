@@ -1,13 +1,12 @@
 mod app_state;
 mod commands;
 mod config;
-mod constants;
 mod error;
 mod eval;
 mod global;
 mod logger;
 mod setup;
-mod ws_server;
+mod ws_client;
 
 #[macro_use]
 extern crate tracing;

@@ -1,23 +1,33 @@
 use axum::routing::get;
+use once_cell::sync::OnceCell;
 use rmpv::Value;
+use rs_shared::constants::GameType;
 use socketioxide::{
     extract::{AckSender, Data, SocketRef},
     SocketIo,
 };
+use std::collections::HashSet;
+use strum::IntoEnumIterator;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
+
+static NAMESPACES: OnceCell<HashSet<String>> = OnceCell::new();
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
+
+    socket.on("ping", |socket: SocketRef| {
+        socket.emit("pong", "🏓").ok();
+    });
 
     socket.on("message", |socket: SocketRef, Data::<Value>(data)| {
         // info!(?data, "Received event:");
         socket.emit("message-back", &data).ok();
     });
 
-    socket.on("message-with-ack", |Data::<Value>(data), ack: AckSender| {
-        // info!(?data, "Received event");
+    socket.on("message-ack", |Data::<Value>(data), ack: AckSender| {
+        info!(?data, "Received event");
         ack.send(&data).ok();
     });
 }
@@ -29,7 +39,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
-    io.ns("/F12024", on_connect);
+
+    fn get_namespaces() -> &'static HashSet<String> {
+        NAMESPACES.get_or_init(|| {
+            GameType::iter()
+                .map(|game| format!("/{:?}", game))
+                .collect()
+        })
+    }
+
+    for namespace in get_namespaces() {
+        io.ns(namespace, on_connect);
+        info!("Namespace added: {}", namespace);
+    }
 
     let app = axum::Router::new()
         .route("/", get(|| async { "Hello, World!" }))

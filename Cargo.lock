@@ -114,9 +114,11 @@ dependencies = [
  "futures-util",
  "hyper",
  "hyper-util",
+ "once_cell",
  "rand 0.9.0",
  "redis 0.29.1",
  "rmpv",
+ "rs_shared",
  "serde",
  "serde_bytes",
  "serde_derive",
@@ -124,6 +126,7 @@ dependencies = [
  "socketioxide",
  "socketioxide-parser-msgpack",
  "socketioxide-redis",
+ "strum",
  "sysinfo",
  "tokio",
  "tower",
@@ -2576,7 +2579,7 @@ dependencies = [
  "displaydoc",
  "yoke",
  "zerofrom",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -2589,7 +2592,7 @@ dependencies = [
  "litemap",
  "tinystr",
  "writeable",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -2603,7 +2606,7 @@ dependencies = [
  "icu_locid_transform_data",
  "icu_provider",
  "tinystr",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -2627,7 +2630,7 @@ dependencies = [
  "utf16_iter",
  "utf8_iter",
  "write16",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -2648,7 +2651,7 @@ dependencies = [
  "icu_properties_data",
  "icu_provider",
  "tinystr",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -2671,7 +2674,7 @@ dependencies = [
  "writeable",
  "yoke",
  "zerofrom",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -5015,6 +5018,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rs_shared"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "binrw",
+ "bitflags 2.9.0",
+ "serde",
+ "serde_bytes",
+ "serde_derive",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "uuid",
+]
+
+[[package]]
 name = "rust_decimal"
 version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5724,12 +5743,11 @@ dependencies = [
  "reqwest",
  "rmp",
  "rmp-serde",
+ "rs_shared",
  "rust_socketio",
  "serde",
  "serde_bytes",
  "serde_json",
- "strum",
- "strum_macros",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard",
@@ -5755,6 +5773,7 @@ dependencies = [
  "url",
  "uuid",
  "window-vibrancy",
+ "zerovec 0.11.1",
 ]
 
 [[package]]
@@ -6908,7 +6927,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
 dependencies = [
  "displaydoc",
- "zerovec",
+ "zerovec 0.10.4",
 ]
 
 [[package]]
@@ -8701,6 +8720,15 @@ dependencies = [
  "yoke",
  "zerofrom",
  "zerovec-derive",
+]
+
+[[package]]
+name = "zerovec"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94e62113720e311984f461c56b00457ae9981c0bc7859d22306cc2ae2f95571c"
+dependencies = [
+ "zerofrom",
 ]
 
 [[package]]

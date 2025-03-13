@@ -18,6 +18,7 @@ pub async fn stop_udp_listener(
 ) -> Result<UdpSuccessResponse, UdpErrorResponse> {
     let mut state = state.lock().await;
 
+    // shutdown the udp socket
     if let Some((socket, shutdown_flag)) = state.udp_listeners.remove(&payload.port) {
         shutdown_flag.store(true, Ordering::Relaxed);
         println!("Stopping UDP listener on port {}", payload.port);
@@ -31,6 +32,11 @@ pub async fn stop_udp_listener(
             success: true,
         });
     }
+
+    // TODO: disconnect the ws client
+    // if let Some(ws_client) = state.ws_clients.get_mut(&payload.game_type) {
+    //     ws_client.disconnect().await;
+    // }
 
     Err(UdpErrorResponse {
         message: format!("No active UDP listener found on port {}", payload.port),

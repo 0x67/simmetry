@@ -1,4 +1,4 @@
-use crate::constants::GameType;
+use rs_shared::constants::GameType;
 use rust_socketio::asynchronous::Client;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;

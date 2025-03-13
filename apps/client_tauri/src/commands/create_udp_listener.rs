@@ -1,18 +1,24 @@
 use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
-use crate::constants::GameType;
-use crate::ws_server::create_or_get_ws_client;
-use bincode::{Decode, Encode};
-use rmp_serde::{decode, encode, from_slice, to_vec, Deserializer, Serializer};
+use crate::ws_client::create_or_get_ws_client;
+use futures_util::FutureExt;
+use rmp_serde;
+use rs_shared::{constants::GameType, packets::forza::parse_forza_packet, WebsocketPayload};
 use serde::{Deserialize, Serialize};
-use std::net::IpAddr;
-use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use tauri::async_runtime::spawn;
-use tauri::State;
-use tokio::net::UdpSocket;
-use tokio::sync::{mpsc, Mutex};
+use std::time::Duration;
+use std::{
+    net::IpAddr,
+    str::FromStr,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
+use tauri::{async_runtime::spawn, State};
+use tokio::{
+    net::UdpSocket,
+    sync::{mpsc, Mutex},
+};
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -40,15 +46,6 @@ impl CreateUdpListenerPayload {
         }
         Ok(())
     }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Encode, Decode)]
-struct WebsocketPayload {
-    #[bincode(with_serde)]
-    id: Uuid,
-    game_type: GameType,
-    timestamp: u128,
-    data: Vec<u8>,
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -84,7 +81,11 @@ pub async fn create_udp_listener(
     state
         .udp_listeners
         .insert(payload.port, (socket.clone(), shutdown_flag.clone()));
-    info!("Creating UDP listener on port {}", payload.port);
+
+    info!(
+        "Creating UDP listener on port {} for {}",
+        payload.port, payload.game_type
+    );
 
     let (tx, mut rx) = mpsc::channel::<(Vec<u8>, std::net::SocketAddr)>(100);
     let cloned_socket = Arc::clone(&socket);
@@ -95,8 +96,22 @@ pub async fn create_udp_listener(
         while !cloned_shutdown_flag.load(Ordering::Relaxed) {
             match cloned_socket.recv_from(&mut buf).await {
                 Ok((size, src)) => {
+                    // ensure the buffer match the original size
                     let sliced_buf = buf[..size].to_vec();
-                    // println!("Received {} bytes from {}", size, src);
+
+                    match payload.game_type {
+                        GameType::FH4 | GameType::FH5 | GameType::FM7 | GameType::FM8 => {
+                            let decoded_packet = parse_forza_packet(&sliced_buf).unwrap();
+                            if !decoded_packet.is_race_on {
+                                continue;
+                            }
+                        }
+                        _ => {
+                            // error!("Unsupported game type: {}", payload.game_type);
+                            continue;
+                        }
+                    }
+
                     if let Err(_) = tx.send((sliced_buf, src)).await {
                         error!("Failed to queue UDP packet for WebSocket emission");
                     }
@@ -128,16 +143,18 @@ pub async fn create_udp_listener(
                 data,
             };
 
-            let json_string = serde_json::to_string(&payload).unwrap();
-            info!("JSON string: {}", json_string);
+            let buf = rmp_serde::to_vec(&payload).unwrap();
 
-            // TODO: this cause an error after every
-            // Serialize to MessagePack format
-            // let buf = to_vec(&payload).expect("Failed to serialize");
-            // info!("Serialized: {:?}", buf);
-
-            if let Err(e) = ws_client.emit("message", json_string).await {
-                println!("Failed to emit WebSocket message: {}", e);
+            if let Err(e) = ws_client
+                .emit_with_ack("message", buf, Duration::from_secs(10), |_, _| {
+                    async move {
+                        // info!("Packet sent to WebSocket");
+                    }
+                    .boxed()
+                })
+                .await
+            {
+                error!("Failed to emit WebSocket message: {}", e);
             }
         }
     });

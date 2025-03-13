@@ -1,15 +1,20 @@
-cargo-features = ["codegen-backend"]
+
+cargo-features = ['codegen-backend']
 
 [profile.dev]
-codegen-backend = "cranelift"
-split-debuginfo = "unpacked"
+codegen-backend = 'cranelift'
+split-debuginfo = 'unpacked'
 
 [profile.dev.build-override]
 opt-level = 3
 
-[workspace]
-resolver = '2'
-members = ['apps/client_tauri', 'apps/api_server']
-
 [profile.release]
 lto = true
+
+[workspace]
+resolver = '2'
+members = [
+	'apps/client_tauri',
+	'apps/api_server',
+	'libs/rs/shared',
+]
