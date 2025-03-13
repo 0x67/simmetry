@@ -5726,6 +5726,7 @@ dependencies = [
  "rmp-serde",
  "rust_socketio",
  "serde",
+ "serde_bytes",
  "serde_json",
  "strum",
  "strum_macros",
