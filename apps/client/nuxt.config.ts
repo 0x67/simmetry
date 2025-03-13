@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     '@unocss/nuxt',
     '@pinia/nuxt',
   ],
-  plugins: ['~/plugins'],
+  plugins: ['~/plugins/pinia.ts'],
   app: {
     head: {
       title: 'Simmetry - All in one platform for sim racing telemetry',
