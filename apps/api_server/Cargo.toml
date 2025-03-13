@@ -7,31 +7,31 @@ edition = "2021"
 #target-dir = "dist/target/api_server"
 
 [dependencies]
-rmpv = { version = "*", features = ["with-serde"] }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_bytes = "0.11.17"
-serde_derive = "1.0.219"
-serde_json = "1.0.140"
-tokio = { version = "1.41.1", features = ["full"] }
+axum = "0.8.1"
 bincode = { version = "2.0.1", features = ["serde", "derive"] }
 binrw = "0.14.1"
 bitflags = "2.9.0"
-tower = { version = "*", default-features = false }
-tracing = "*"
-tracing-subscriber = { version = "*", features = ["env-filter"] }
-futures = "*"
+futures = "0.3.31"
 futures-util = "0.3.31"
-axum = "0.8.1"
-hyper-util.version = "*"
-hyper = { version = "*", features = ["http1", "server"] }
-socketioxide = "*"
-socketioxide-redis = { version = "*", features = [
+hyper = { version = "1.6.0", features = ["http1", "http2", "server"] }
+hyper-util = "0.1.10"
+rand = "0.9.0"
+redis = { version = "0.29.1", features = ["aio", "tokio-comp"] }
+rmpv = { version = "1.3.0", features = ["with-serde"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_bytes = "0.11.17"
+serde_derive = "1.0.219"
+serde_json = "1.0.140"
+socketioxide = "0.16.1"
+socketioxide-parser-msgpack = "0.16.0"
+socketioxide-redis = { version = "0.2.0", features = [
   "redis",
   "redis-cluster",
   "fred",
 ] }
-socketioxide-parser-msgpack = "0.16.0"
-rand = "0.9.0"
-redis = { version = "0.29.1", features = ["aio", "tokio-comp"] }
 sysinfo = "0.33.1"
+tokio = { version = "1.44.1", features = ["full"] }
+tower = { version = "0.5.2", default-features = false }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 uuid = { version = "1.15.1", features = ["serde", "v7"] }

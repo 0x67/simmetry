@@ -20,32 +20,29 @@ features = []
 
 [dependencies]
 bincode = { version = "2.0.1", features = ["serde", "derive"] }
-tauri-plugin-shell = "2.2.0"
-tauri-plugin-notification = "2.2.1"
-tauri-plugin-os = "2.2.0"
-tauri-plugin-fs = "2.2.0"
-tauri-plugin-store = "2.2.0"
-tauri-plugin-sentry = "0.4"
-futures-util = "*"
+futures-util = "0.3.31"
+os_info = { version = "3", default-features = false }
 rand = "0.9"
-rust_socketio = { version = "*", features = ["async"] }
+rmp = "0.8.14"
+rmp-serde = "1.3.0"
+rust_socketio = { version = "0.6.0", features = ["async"] }
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1"
-strum = "0.27"
-strum_macros = "0.27"
-time = { version = "*", features = ['macros', 'serde'] }
-tokio = { version = "1", features = ["full"] }
-tracing = { version = "*", features = ["log", "release_max_level_info"] }
-tracing-subscriber = { version = "*", features = [
+serde_json = "1.0.140"
+strum = "0.27.1"
+strum_macros = "0.27.1"
+tauri = { version = "2.3.1", features = ["tray-icon"] }
+tauri-plugin-fs = "2.2.0"
+tauri-plugin-notification = "2.2.2"
+tauri-plugin-os = "2.2.1"
+tauri-plugin-sentry = "0.4.1"
+tauri-plugin-shell = "2.2.0"
+tauri-plugin-store = "2.2.0"
+time = { version = "0.3.39", features = ['macros', 'serde'] }
+tokio = { version = "1.44.1", features = ["full"] }
+tracing = { version = "0.1.41", features = ["log", "release_max_level_info"] }
+tracing-subscriber = { version = "0.3.19", features = [
   'time',
   'env-filter',
   'json',
 ] }
-os_info = { version = "3", default-features = false }
 uuid = { version = "1.15.1", features = ["serde", "v7"] }
-rmp = "0.8.14"
-rmp-serde = "1.3.0"
-
-[dependencies.tauri]
-version = "2.2.5"
-features = ["tray-icon"]
