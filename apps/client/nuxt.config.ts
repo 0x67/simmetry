@@ -6,7 +6,14 @@ export default defineNuxtConfig({
   workspaceDir: '../../',
   srcDir: 'src',
   devtools: { enabled: true },
-  modules: ['@vueuse/nuxt', 'nuxt-svgo', '@nuxt/eslint', '@unocss/nuxt'],
+  modules: [
+    '@vueuse/nuxt',
+    'nuxt-svgo',
+    '@nuxt/eslint',
+    '@unocss/nuxt',
+    '@pinia/nuxt',
+  ],
+  plugins: ['~/plugins'],
   app: {
     head: {
       title: 'Simmetry - All in one platform for sim racing telemetry',

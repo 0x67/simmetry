@@ -1,5 +1,5 @@
 import * as tauriApp from '@tauri-apps/api/app';
-import * as tauriFs from '@tauri-apps/plugin-fs';
+import * as tauriFs from 'tauri-plugin-fs-pro-api';
 import * as tauriNotification from '@tauri-apps/plugin-notification';
 import * as tauriOs from '@tauri-apps/plugin-os';
 import * as tauriShell from '@tauri-apps/plugin-shell';
@@ -7,6 +7,10 @@ import * as tauriStore from '@tauri-apps/plugin-store';
 import { addImports, defineNuxtModule } from 'nuxt/kit';
 import * as tauriCore from '@tauri-apps/api/core';
 import * as tauriLog from '@tauri-apps/plugin-log';
+import * as tauriDialog from '@tauri-apps/plugin-dialog';
+import * as tauriProcess from '@tauri-apps/plugin-process';
+import * as tauriClipboard from 'tauri-plugin-clipboard-api';
+import * as tauriOpener from '@tauri-apps/plugin-opener';
 
 const capitalize = (name: string) => {
   return name.charAt(0).toUpperCase() + name.slice(1);
@@ -25,7 +29,7 @@ const tauriModules = [
     prefix: 'Notification',
     importPath: '@tauri-apps/plugin-notification',
   },
-  { module: tauriFs, prefix: 'Fs', importPath: '@tauri-apps/plugin-fs' },
+  { module: tauriFs, prefix: 'Fs', importPath: 'tauri-plugin-fs-pro-api' },
   {
     module: tauriStore,
     prefix: 'Store',
@@ -33,6 +37,26 @@ const tauriModules = [
   },
   { module: tauriCore, prefix: '', importPath: '@tauri-apps/api/core' },
   { module: tauriLog, prefix: 'Log', importPath: '@tauri-apps/plugin-log' },
+  {
+    module: tauriDialog,
+    prefix: 'Dialog',
+    importPath: '@tauri-apps/plugin-dialog',
+  },
+  {
+    module: tauriProcess,
+    prefix: 'Process',
+    importPath: '@tauri-apps/plugin-process',
+  },
+  {
+    module: tauriClipboard,
+    prefix: 'Clipboard',
+    importPath: 'tauri-plugin-clipboard-api',
+  },
+  {
+    module: tauriOpener,
+    prefix: 'Opener',
+    importPath: '@tauri-apps/plugin-opener',
+  },
 ];
 
 export default defineNuxtModule<ModuleOptions>({

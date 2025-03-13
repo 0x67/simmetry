@@ -1,4 +1,8 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { keepScreenOn } from 'tauri-plugin-keep-screen-on-api';
+
+keepScreenOn(true);
+</script>
 
 <template>
   <main>

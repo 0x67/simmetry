@@ -34,10 +34,11 @@
     "os:allow-family",
     "os:allow-version",
     "os:allow-locale",
-    "fs:allow-document-read",
-    "fs:allow-document-write",
+    "fs-pro:default",
     "store:default",
-    "log:default",
-    "log:allow-log"
+    "sentry:default",
+    "sentry:allow-event",
+    "sentry:allow-breadcrumb",
+    "sentry:allow-envelope"
   ]
 }
