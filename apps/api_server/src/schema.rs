@@ -1,5 +1,9 @@
-use diesel::{prelude::*, sql_types::Jsonb};
+use diesel::{
+    prelude::*,
+    sql_types::{self, Jsonb, Text},
+};
 use serde::Serialize;
+use serde_json::Value;
 
 table! {
   f1_data (id) {
@@ -8,9 +12,9 @@ table! {
   }
 }
 
-#[derive(Serialize, Selectable, Queryable)]
+#[derive(Insertable)]
 #[diesel(table_name = f1_data)]
-pub struct F1Data {
-    pub id: String,
-    pub data: Jsonb,
+pub struct F1Data<'a> {
+    pub id: &'a str,
+    pub data: &'a Value,
 }

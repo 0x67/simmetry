@@ -1,4 +1,3 @@
-
 cargo-features = ['codegen-backend']
 
 [profile.dev]
@@ -8,6 +7,11 @@ opt-level = 3
 
 [profile.release]
 lto = true
+opt-level = 3
+
+[profile.profiling]
+inherits = "release"
+debug = true
 
 [workspace]
 resolver = '2'
