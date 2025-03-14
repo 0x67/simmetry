@@ -1,4 +1,7 @@
+mod schema;
+
 use axum::routing::get;
+use diesel::prelude::*;
 use once_cell::sync::OnceCell;
 use rmpv::Value;
 use rs_shared::constants::GameType;
@@ -6,7 +9,7 @@ use socketioxide::{
     extract::{AckSender, Data, SocketRef},
     SocketIo,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, env};
 use strum::IntoEnumIterator;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
@@ -38,6 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (layer, io) = SocketIo::new_layer();
 
+    // init namespaces
     io.ns("/", on_connect);
 
     fn get_namespaces() -> &'static HashSet<String> {
@@ -53,6 +57,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("Namespace added: {}", namespace);
     }
 
+    let db_url = env::var("DATABASE_URL").unwrap();
+
+    // set up connection pool
+    let manager = deadpool_diesel::postgres::Manager::new(db_url, deadpool_diesel::Runtime::Tokio1);
+    let pool = deadpool_diesel::postgres::Pool::builder(manager)
+        .build()
+        .unwrap();
+
+    // init routes
     let app = axum::Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .layer(layer);

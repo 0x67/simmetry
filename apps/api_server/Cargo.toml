@@ -5,12 +5,16 @@ edition = "2021"
 
 #[build]
 #target-dir = "dist/target/api_server"
+[profile.dev]
+opt-level = 3
 
 [dependencies]
-axum = "0.8.1"
+axum = { version = "0.8.1", features = ["macros"] }
 bincode = { version = "2.0.1", features = ["serde", "derive"] }
 binrw = "0.14.1"
 bitflags = "2.9.0"
+deadpool-diesel = { version = "0.6.1", features = ["postgres"] }
+diesel = { version = "2.2.0", features = ["postgres"] }
 futures = "0.3.31"
 futures-util = "0.3.31"
 hyper = { version = "1.6.0", features = ["http1", "http2", "server"] }

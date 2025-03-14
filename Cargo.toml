@@ -4,8 +4,6 @@ cargo-features = ['codegen-backend']
 [profile.dev]
 codegen-backend = 'cranelift'
 split-debuginfo = 'unpacked'
-
-[profile.dev.build-override]
 opt-level = 3
 
 [profile.release]
@@ -13,8 +11,4 @@ lto = true
 
 [workspace]
 resolver = '2'
-members = [
-	'apps/client_tauri',
-	'apps/api_server',
-	'libs/rs/shared',
-]
+members = ['apps/client_tauri', 'apps/api_server', 'libs/rs/shared']
