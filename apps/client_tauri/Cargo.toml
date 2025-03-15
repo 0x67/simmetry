@@ -7,15 +7,9 @@ license = "MIT"
 repository = "https://github.com/0x67/simmetry"
 edition = "2021"
 
-[profile.dev]
-opt-level = 3
-
 [lib]
 name = "simmetry_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
-
-#[build]
-#target-dir = "dist/target/client_tauri"
 
 [build-dependencies.tauri-build]
 version = "2.0.5"
@@ -58,6 +52,7 @@ tauri-plugin-window-state = "2.0.0"
 thiserror = "2.0.12"
 time = { version = "0.3.39", features = ['macros', 'serde'] }
 tokio = { version = "1.44.1", features = ["full"] }
+tokio-util = { version = "0.7.14", features = ["full"] }
 tracing = { version = "0.1.41", features = ["log", "release_max_level_info"] }
 tracing-subscriber = { version = "0.3.19", features = [
   'time',

@@ -73,7 +73,7 @@ pub fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
     //     create_main_window(app.app_handle())?;
     // }
 
-    app.manage(Mutex::new(AppState::default()));
+    app.manage(AppState::default());
     // let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     // let menu = Menu::with_items(app, &[&quit_i])?;
 
