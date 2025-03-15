@@ -1,45 +1,58 @@
 use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
+use rs_shared::constants::GameType;
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::Ordering;
 use tauri::State;
-use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StopUdpListenerPayload {
     pub port: u16,
     pub host: String,
+    pub game_type: GameType,
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn stop_udp_listener(
+pub async fn cmd_stop_udp_listener(
     payload: StopUdpListenerPayload,
-    state: State<'_, Mutex<AppState>>,
+    state: State<'_, AppState>,
 ) -> Result<UdpSuccessResponse, UdpErrorResponse> {
-    let mut state = state.lock().await;
+    let state = state.lock().await;
 
-    // shutdown the udp socket
-    if let Some((socket, shutdown_flag)) = state.udp_listeners.remove(&payload.port) {
-        shutdown_flag.store(true, Ordering::Relaxed);
-        println!("Stopping UDP listener on port {}", payload.port);
-
-        let _ = socket
-            .send_to(&[], format!("127.0.0.1:{}", payload.port))
-            .await;
-
-        return Ok(UdpSuccessResponse {
-            message: format!("UDP Listener stopped on port {}", payload.port),
-            success: true,
-        });
+    if let Some(tracker) = state.ws_ping_trackers.get(&payload.game_type) {
+        let token = state.ws_ping_tokens.get(&payload.game_type).unwrap();
+        tracker.close();
+        token.cancel();
     }
 
-    // TODO: disconnect the ws client
-    // if let Some(ws_client) = state.ws_clients.get_mut(&payload.game_type) {
-    //     ws_client.disconnect().await;
-    // }
+    if let Some(_) = state.udp_listener_trackers.get(&payload.port) {
+        let token = state.udp_listener_tokens.get(&payload.port).unwrap();
+        let tracker = state.udp_listener_trackers.get(&payload.port).unwrap();
+        tracker.close();
+        token.cancel();
+    }
 
-    Err(UdpErrorResponse {
-        message: format!("No active UDP listener found on port {}", payload.port),
-        success: false,
+    if let Some(_) = state.packet_forwarding_trackers.get(&payload.game_type) {
+        let token = state
+            .packet_forwarding_tokens
+            .get(&payload.game_type)
+            .unwrap();
+        let tracker = state
+            .packet_forwarding_trackers
+            .get(&payload.game_type)
+            .unwrap();
+        tracker.close();
+        token.cancel();
+    }
+
+    if let Some(_) = state.ws_emitter_trackers.get(&payload.game_type) {
+        let token = state.ws_emitter_tokens.get(&payload.game_type).unwrap();
+        let tracker = state.ws_emitter_trackers.get(&payload.game_type).unwrap();
+        tracker.close();
+        token.cancel();
+    }
+
+    Ok(UdpSuccessResponse {
+        message: format!("UDP Listener stopped on port {}", payload.port),
+        success: true,
     })
 }

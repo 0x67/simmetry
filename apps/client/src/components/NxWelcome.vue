@@ -17,28 +17,28 @@ const UDP_PAYLOAD = {
   // port: 20777, // wheel => forwarded from wheel app
   port: 22024, // controller
   host: '0.0.0.0',
+  game_type: 'FH5',
 };
 
 const handleClick = async () => {
   switch (telemetryStatus.value) {
     case 'Connected': {
       telemetryStatus.value = 'Disconnected';
-      const response = await useTauriInvoke('stop_udp_listener', {
+      const response = await useTauriInvoke('cmd_stop_udp_listener', {
         payload: UDP_PAYLOAD,
       });
-      console.log('stop_udp_listener');
+      console.log('cmd_stop_udp_listener');
       console.log(response);
       break;
     }
     case 'Disconnected': {
-      const response = await useTauriInvoke('create_udp_listener', {
+      const response = await useTauriInvoke('cmd_create_udp_listener', {
         payload: {
           ...UDP_PAYLOAD,
-          game_type: 'F12024',
           enable_port_forwarding: true,
         },
       });
-      console.log('create_udp_listener');
+      console.log('cmd_create_udp_listener');
       console.log(response);
       telemetryStatus.value = 'Connected';
 
@@ -46,13 +46,13 @@ const handleClick = async () => {
     }
     case 'Connecting': {
       telemetryStatus.value = 'Disconnected';
-      const response = await useTauriInvoke('stop_udp_listener', {
+      const response = await useTauriInvoke('cmd_stop_udp_listener', {
         payload: {
           port: 20777,
           host: '0.0.0.0',
         },
       });
-      console.log('stop_udp_listener');
+      console.log('cmd_stop_udp_listener');
       console.log(response);
       break;
     }

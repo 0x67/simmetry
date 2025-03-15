@@ -1,29 +1,34 @@
 use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
-use crate::ws_client::create_or_get_ws_client;
+use crate::ws_client::{self, create_ws_client};
 use futures_util::FutureExt;
 use rmp_serde;
 use rs_shared::{constants::GameType, packets::forza::parse_forza_packet, WebsocketPayload};
+use rust_socketio::asynchronous::Client;
 use rust_socketio::payload;
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
-use std::net::ToSocketAddrs;
-use std::time::SystemTime;
 use std::{
-    net::IpAddr,
+    collections::VecDeque,
+    net::{IpAddr, SocketAddr},
     str::FromStr,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    time::SystemTime,
 };
-use tauri::{async_runtime::spawn, State};
-use tokio::io::Interest;
-use tokio::time::{sleep, Duration};
+use tauri::async_runtime::{channel, Sender};
+use tauri::{
+    async_runtime::{spawn, JoinHandle},
+    AppHandle, Manager, State,
+};
 use tokio::{
     net::UdpSocket,
     sync::{mpsc, Mutex},
+    time::{sleep, Duration},
 };
+use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -34,7 +39,6 @@ struct QueuedMessage {
 }
 
 /// Assuming the data is sent at 60Hz, we can store only 10 secs of data
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateUdpListenerPayload {
     pub game_type: GameType,
@@ -67,11 +71,11 @@ const MAX_RETRIES: u8 = 3;
 const MAX_AGE_SECS: u64 = 10;
 const MAX_QUEUE_SIZE: usize = 10 * 60;
 
-// TODO: implement forwarding
 #[tauri::command(rename_all = "snake_case")]
-pub async fn create_udp_listener(
+pub async fn cmd_create_udp_listener(
+    app_handle: AppHandle,
     payload: CreateUdpListenerPayload,
-    state: State<'_, Mutex<AppState>>,
+    state: State<'_, AppState>,
 ) -> Result<UdpSuccessResponse, UdpErrorResponse> {
     if let Err(e) = payload.validate() {
         return Err(UdpErrorResponse {
@@ -80,207 +84,272 @@ pub async fn create_udp_listener(
         });
     }
 
+    let _ = create_ws_client(payload.game_type, app_handle.clone()).await;
+
+    let (ws_tx, ws_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
+    let (udp_tx, udp_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
+
+    create_udp_listener(payload.clone(), app_handle.clone(), ws_tx.clone()).await;
+
+    if let Some(forward_hosts) = payload.forward_hosts {
+        handle_packets_forwarding(
+            payload.port,
+            payload.game_type,
+            forward_hosts,
+            app_handle.clone(),
+            udp_rx,
+        )
+        .await;
+    }
+
+    handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
+
+    Ok(UdpSuccessResponse {
+        message: format!("UDP listener created on port {}", payload.port),
+        success: true,
+    })
+}
+
+async fn create_udp_listener(
+    payload: CreateUdpListenerPayload,
+    app_handle: AppHandle,
+    ws_tx: Sender<(Vec<u8>, SocketAddr)>,
+) -> Arc<UdpSocket> {
     let addr = format!("0.0.0.0:{}", payload.port);
-    let socket = UdpSocket::bind(&addr).await.map_err(|e| UdpErrorResponse {
-        message: format!("Failed to bind UDP socket: {}", e),
-        success: false,
-    })?;
+    let game_type = payload.game_type;
+    let socket = UdpSocket::bind(&addr)
+        .await
+        .map_err(|e| UdpErrorResponse {
+            message: format!("Failed to bind UDP socket: {}", e),
+            success: false,
+        })
+        .unwrap();
 
-    if let Some(hosts) = &payload.forward_hosts {
-        for host in hosts {
-            if let Err(e) = socket.connect(host).await {
-                error!("Failed to connect to host: {}", e);
+    if let Some(forward_hosts) = &payload.forward_hosts {
+        for host in forward_hosts {
+            match socket.connect(host).await {
+                Ok(_) => info!("Connected to forward host: {}", host),
+                Err(e) => error!("Failed to connect to forward host: {}", e),
             }
-
-            info!("Connected to host for forwarding: {}", host);
         }
     }
 
     let socket = Arc::new(socket);
-    let shutdown_flag = Arc::new(AtomicBool::new(false));
-    let ws_client = create_or_get_ws_client(payload.game_type, state.clone()).await;
+
+    let state = app_handle.state::<AppState>();
+
     let mut state = state.lock().await;
 
-    if state.udp_listeners.contains_key(&payload.port) {
-        return Err(UdpErrorResponse {
-            message: format!("Port {} is already in use", payload.port),
-            success: false,
+    let token = CancellationToken::new();
+    let tracker = TaskTracker::new();
+
+    {
+        let token = token.clone();
+        let tracker = tracker.clone();
+
+        state.udp_listener_trackers.insert(payload.port, tracker);
+        state.udp_listener_tokens.insert(payload.port, token);
+        state.udp_listeners.insert(payload.port, socket.clone());
+    }
+
+    {
+        let token = token.clone();
+        let socket = socket.clone();
+        let app_handle = app_handle.clone();
+        tracker.spawn(async move {
+            let mut buf = [0; 2048];
+            loop {
+                tokio::select! {
+                    _ = token.cancelled() => {
+                        let state = app_handle.state::<AppState>();
+                        let mut state = state.lock().await;
+
+                        state.udp_listener_trackers.remove(&payload.port);
+                        state.udp_listener_tokens.remove(&payload.port);
+                        state.udp_listeners.remove(&payload.port);
+
+                        info!("Stop UDP listener. Port: {}, Game Type: {}", payload.port, game_type);
+
+                        break;
+                    }
+                    result = socket.recv_from(&mut buf) => {
+                        match result {
+                            Ok((size, src)) => {
+                                let sliced_buf = buf[..size].to_vec();
+
+                                match game_type {
+                                    GameType::FH4 | GameType::FH5 | GameType::FM7 | GameType::FM8 => {
+                                        let decoded_packet = match parse_forza_packet(&sliced_buf) {
+                                            Ok(packet) => packet,
+                                            Err(e) => {
+                                                error!("Failed to parse Forza packet: {}", e);
+                                                continue;
+                                            }
+                                        };
+
+                                        if !decoded_packet.is_race_on {
+                                            continue;
+                                        }
+                                    }
+                                    _ => {
+                                        warn!("Unsupported game type: {}", game_type);
+                                        continue;
+                                    }
+                                }
+
+                                if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                    warn!("WS queue is full, dropping oldest packet");
+                                }
+
+                                // if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                //     warn!("UDP queue is full, dropping oldest packet");
+                                // }
+                            }
+                            // false positive
+                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                tokio::task::yield_now().await;
+                            }
+                            Err(e) => {
+                                error!("Error receiving packet: {}", e);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         });
     }
 
-    state
-        .udp_listeners
-        .insert(payload.port, (socket.clone(), shutdown_flag.clone()));
+    socket
+}
 
-    info!(
-        "Creating UDP listener on port {} for {}",
-        payload.port, payload.game_type
-    );
+async fn handle_ws_emitter(
+    game_type: GameType,
+    app_handle: AppHandle,
+    mut ws_rx: mpsc::Receiver<(Vec<u8>, SocketAddr)>,
+) {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.lock().await;
 
-    let (ws_tx, mut ws_rx) = mpsc::channel::<(Vec<u8>, std::net::SocketAddr)>(100);
-    let (udp_tx, mut udp_rx) = mpsc::channel::<(Vec<u8>, std::net::SocketAddr)>(100);
-    let failed_messages = Arc::new(Mutex::new(VecDeque::<QueuedMessage>::new()));
+    let tracker = TaskTracker::new();
+    let token = CancellationToken::new();
 
-    let cloned_socket = socket.clone();
-    let cloned_shutdown_flag = Arc::clone(&shutdown_flag);
-    let failed_messages_clone = Arc::clone(&failed_messages);
+    {
+        let token = token.clone();
+        let tracker = tracker.clone();
+        let ws_client = state.ws_clients.get(&game_type).unwrap().clone();
 
-    spawn(async move {
-        while !cloned_shutdown_flag.load(Ordering::Relaxed) {
-            let ready = socket.ready(Interest::READABLE).await.unwrap();
+        state.ws_emitter_trackers.insert(game_type, tracker.clone());
+        state.ws_emitter_tokens.insert(game_type, token.clone());
 
-            if ready.is_readable() {
-                let mut buf = [0; 2048];
-
-                match socket.recv_from(&mut buf).await {
-                    Ok((size, src)) => {
-                        // ensure the buffer match the original size
-                        let sliced_buf = buf[..size].to_vec();
-
-                        match payload.game_type {
-                            GameType::FH4 | GameType::FH5 | GameType::FM7 | GameType::FM8 => {
-                                let decoded_packet = parse_forza_packet(&sliced_buf).unwrap();
-                                if !decoded_packet.is_race_on {
-                                    continue;
-                                }
-                            }
-                            _ => {
-                                warn!("Unsupported game type: {}", payload.game_type);
-                                continue;
-                            }
-                        }
-
-                        if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                            warn!("UDP queue is full, dropping oldest packet");
-                        }
-
-                        if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                            warn!("UDP queue is full, dropping oldest packet");
-                        }
-                    }
-                    // False positive error
-                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                        tokio::task::yield_now().await;
-                        continue;
-                    }
-                    Err(e) => {
-                        error!("Error receiving packet: {}", e);
+        tracker.spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = token.cancelled() => {
                         break;
                     }
-                }
-            }
-        }
-        info!("UDP Listener stopped on port {}", payload.port);
-    });
+                    result = ws_rx.recv() => {
+                        if let Some((buf, _)) = result {
+                            let ts = timestamp::Timestamp::now(ContextV7::new());
+                            let (seconds, nanos) = ts.to_unix();
+                            let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
 
-    let socket_clone2 = cloned_socket.clone();
+                            let parsed = parse_forza_packet(&buf);
 
-    // Forwarding to other hosts
-    spawn(async move {
-        while let Some((data, _)) = udp_rx.recv().await {
-            let ready = socket_clone2.ready(Interest::WRITABLE).await.unwrap();
+                            let payload = WebsocketPayload {
+                                id: Uuid::new_v7(ts),
+                                game_type,
+                                timestamp: ts_nanos,
+                                data: buf.clone(),
+                            };
 
-            if ready.is_writable() {
-                for host in hosts {
-                    if let Err(e) = socket_clone2.send_to(&data, host).await {
-                        error!("Failed to send packet to host: {}", e);
+                            let buf = rmp_serde::to_vec(&payload).unwrap();
+
+                            if let Err(e) = ws_client
+                                // NOTE: current crate version ack not working
+                                // .emit_with_ack(
+                                //     "message-ack",
+                                //     buf.clone(),
+                                //     tokio::time::Duration::from_secs(10),
+                                //     |_, _| async move {}.boxed(),
+                                // )
+                                .emit("message", buf.clone())
+                                .await
+                            {
+                                error!("Failed to emit WebSocket message: {}", e);
+
+                                // let mut queue = failed_messages.lock().await;
+                                // if queue.len() >= MAX_QUEUE_SIZE {
+                                //     queue.pop_front();
+                                // }
+
+                                // queue.push_back(QueuedMessage {
+                                //     buf: buf.clone(),
+                                //     retries: 0,
+                                //     added: SystemTime::now(),
+                                // });
+                            }
+
+                            info!("Parsed packet: {:?}", parsed);
+
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
+}
 
-    // WS emit to API
-    let ws_client_clone1 = ws_client.clone();
-    spawn(async move {
-        while let Some((data, _)) = ws_rx.recv().await {
-            let ts = timestamp::Timestamp::now(ContextV7::new());
+async fn handle_packets_forwarding(
+    port: u16,
+    game_type: GameType,
+    forward_hosts: Vec<String>,
+    app_handle: AppHandle,
+    mut udp_rx: mpsc::Receiver<(Vec<u8>, SocketAddr)>,
+) {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.lock().await;
 
-            let (seconds, nanos) = ts.to_unix();
-            let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
+    let tracker = TaskTracker::new();
+    let token = CancellationToken::new();
 
-            let payload = WebsocketPayload {
-                id: Uuid::new_v7(ts),
-                game_type: payload.game_type,
-                timestamp: ts_nanos,
-                data: data.clone(),
-            };
+    {
+        let token = token.clone();
+        let tracker = tracker.clone();
+        let socket = state.udp_listeners.get(&port).unwrap().clone();
+        let app_handle = app_handle.clone();
 
-            let buf = rmp_serde::to_vec(&payload).unwrap();
+        state
+            .packet_forwarding_trackers
+            .insert(game_type, tracker.clone());
+        state
+            .packet_forwarding_tokens
+            .insert(game_type, token.clone());
 
-            if let Err(e) = ws_client
-                .emit_with_ack("message", buf.clone(), Duration::from_secs(10), |_, _| {
-                    async move {}.boxed()
-                })
-                .await
-            {
-                error!("Failed to emit WebSocket message: {}", e);
+        tracker.spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = token.cancelled() => {
+                        let state = app_handle.state::<AppState>();
+                        let mut state = state.lock().await;
 
-                let mut queue = failed_messages_clone.lock().await;
-                if queue.len() >= MAX_QUEUE_SIZE {
-                    // Drop oldest packet if buffer is full
-                    queue.pop_front();
-                }
+                        state.packet_forwarding_trackers.remove(&game_type);
+                        state.packet_forwarding_tokens.remove(&game_type);
 
-                queue.push_back(QueuedMessage {
-                    buf: buf.clone(),
-                    retries: 0,
-                    added: SystemTime::now(),
-                });
-            }
-        }
-    });
+                        break;
+                    }
+                    result = udp_rx.recv() => {
+                        if let Some((buf, _)) = result {
+                          for host in &forward_hosts {
+                                if let Err(e) = socket.send_to(&buf, host).await {
+                                    error!("Failed to send packet to host: {}", e);
+                                }
+                          }
+                        }
 
-    let ws_client_clone2 = ws_client_clone1.clone();
-    let failed_messages_retry = failed_messages.clone();
-    spawn(async move {
-        loop {
-            sleep(Duration::from_secs(5)).await;
-
-            let mut queue = failed_messages_retry.lock().await;
-            while let Some(mut queued_message) = queue.pop_front() {
-                if queued_message.retries >= MAX_RETRIES {
-                    warn!("Dropping packet after {} retries", MAX_RETRIES);
-                    continue;
-                }
-
-                if queued_message.added.elapsed().unwrap() > Duration::from_secs(MAX_AGE_SECS) {
-                    warn!("Dropping packet after {} seconds", MAX_AGE_SECS);
-                    continue;
-                }
-
-                if let Err(e) = ws_client_clone2
-                    .emit_with_ack(
-                        "message",
-                        queued_message.buf.clone(),
-                        Duration::from_secs(10),
-                        |_, _| async move {}.boxed(),
-                    )
-                    .await
-                {
-                    error!("Retry failed: {}, re-buffering message", e);
-                    // Increment retry count
-                    queued_message.retries += 1;
-                    // Add back to the queue for another attempt
-                    queue.push_back(queued_message);
-                    // Stop retrying if the WebSocket is still down
-                    break;
-                }
-
-                // Maintain max queue size by dropping the oldest packet
-                if queue.len() > MAX_QUEUE_SIZE {
-                    queue.pop_front();
-                    warn!(
-                        "Dropped oldest packet due to queue size limit {}",
-                        MAX_QUEUE_SIZE
-                    );
+                    }
                 }
             }
-        }
-    });
-
-    Ok(UdpSuccessResponse {
-        message: format!("UDP listener created on {}", addr),
-        success: true,
-    })
+        });
+    }
 }
