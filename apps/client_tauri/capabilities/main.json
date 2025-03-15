@@ -39,6 +39,7 @@
     "sentry:default",
     "sentry:allow-event",
     "sentry:allow-breadcrumb",
-    "sentry:allow-envelope"
+    "sentry:allow-envelope",
+    "keep-screen-on:default"
   ]
 }

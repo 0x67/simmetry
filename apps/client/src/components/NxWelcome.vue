@@ -34,7 +34,7 @@ const handleClick = async () => {
       const response = await useTauriInvoke('create_udp_listener', {
         payload: {
           ...UDP_PAYLOAD,
-          game_type: 'F12024',
+          game_type: 'FH5',
           enable_port_forwarding: true,
         },
       });
