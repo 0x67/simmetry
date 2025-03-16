@@ -254,7 +254,11 @@ async fn handle_ws_emitter(
                             let (seconds, nanos) = ts.to_unix();
                             let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
 
-                            let parsed = parse_forza_packet(&buf);
+                            #[cfg(debug_assertions)]
+                            {
+                                let parsed = parse_forza_packet(&buf);
+                                info!("Parsed packet: {:?}", parsed);
+                            }
 
                             let payload = WebsocketPayload {
                                 id: Uuid::new_v7(ts),
@@ -264,7 +268,6 @@ async fn handle_ws_emitter(
                             };
 
                             let buf = rmp_serde::to_vec(&payload).unwrap();
-
                             if let Err(e) = ws_client
                                 // NOTE: current crate version ack not working
                                 // .emit_with_ack(
@@ -290,7 +293,7 @@ async fn handle_ws_emitter(
                                 // });
                             }
 
-                            info!("Parsed packet: {:?}", parsed);
+
 
                         }
                     }

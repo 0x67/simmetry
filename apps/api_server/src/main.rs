@@ -1,18 +1,27 @@
+mod app_state;
 mod schema;
+mod services;
 
+use app_state::AppState;
 use axum::routing::get;
-use diesel::prelude::*;
+use diesel::PgConnection;
 use once_cell::sync::OnceCell;
 use rmpv::Value;
-use rs_shared::{constants::GameType, packets::forza::parse_forza_packet, WebsocketPayload};
+use rs_shared::{
+    constants::GameType,
+    packets::forza::{parse_forza_packet, schema::InsertF1Data},
+    WebsocketPayload,
+};
+use services::forza::create_f1_data;
 use socketioxide::{
     adapter::Adapter,
     extract::{AckSender, Data, SocketRef},
-    ParserConfig, SocketIo,
+    SocketIo,
 };
 use socketioxide_redis::{RedisAdapter, RedisAdapterCtr};
-use std::{collections::HashSet, env};
+use std::{collections::HashSet, env, sync::Arc};
 use strum::IntoEnumIterator;
+use tokio::sync::Mutex;
 use tower::ServiceBuilder;
 use tracing_subscriber::FmtSubscriber;
 
@@ -32,15 +41,11 @@ async fn on_connect<A: Adapter>(socket: SocketRef<A>, Data(data): Data<Value>) {
 
     socket.on("message", |socket: SocketRef<A>, Data::<Value>(data)| {
         match socket.ns() {
-            "/FH5" => {
+            "/FH4" | "/FH5" | "/FM7" | "/FM8" => {
                 if let Some(data) = data.as_slice() {
                     let parsed_msgpack = rmp_serde::from_slice::<WebsocketPayload>(&data).unwrap();
 
-                    // info!("Parsed packet: {:?}", parsed_msgpack);
-
                     let forza_packet = parse_forza_packet(&parsed_msgpack.data);
-
-                    info!("Forza packet: {:?}", forza_packet);
                 }
             }
             _ => {
@@ -77,19 +82,31 @@ async fn on_connect<A: Adapter>(socket: SocketRef<A>, Data(data): Data<Value>) {
     );
 }
 
-async fn on_event<A: Adapter>(socket: SocketRef<A>, Data(data): Data<String>) {}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
+
+    info!("Setting up database connection");
+    let db_url = env::var("DATABASE_URL").unwrap();
+
+    let manager = deadpool_diesel::postgres::Manager::new(db_url, deadpool_diesel::Runtime::Tokio1);
+    let pool = deadpool_diesel::postgres::Pool::builder(manager)
+        .build()
+        .unwrap();
 
     info!("Connecting to redis");
     let client = redis::Client::open("redis://127.0.0.1:6380?protocol=resp3")?;
     let adapter = RedisAdapterCtr::new_with_redis(&client).await?;
 
+    let app_state = AppState { pool: pool.clone() };
+
     info!("Building socket.io layer");
     let (layer, io) = SocketIo::builder()
+        // .with_parser(ParserConfig::msgpack())
         .with_adapter::<RedisAdapter<_>>(adapter)
+        .max_buffer_size(512)
+        .max_payload(2048)
+        .with_state(app_state.clone())
         .build_layer();
 
     info!("Adding namespaces");
@@ -106,14 +123,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = io.ns(namespace, on_connect).await?;
         info!("Namespace added: {}", namespace);
     }
-
-    info!("Setting up database connection");
-    let db_url = env::var("DATABASE_URL").unwrap();
-
-    let manager = deadpool_diesel::postgres::Manager::new(db_url, deadpool_diesel::Runtime::Tokio1);
-    let pool = deadpool_diesel::postgres::Pool::builder(manager)
-        .build()
-        .unwrap();
 
     info!("Setting up routes");
     let app = axum::Router::new()

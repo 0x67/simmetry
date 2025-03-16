@@ -110,8 +110,10 @@ dependencies = [
  "bincode",
  "binrw",
  "bitflags 2.9.0",
+ "chrono",
  "deadpool-diesel",
  "diesel",
+ "diesel-enum",
  "futures",
  "futures-util",
  "hyper",
@@ -908,8 +910,10 @@ checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -1315,10 +1319,23 @@ checksum = "470eb10efc8646313634c99bb1593f402a6434cbd86e266770c6e39219adb86a"
 dependencies = [
  "bitflags 2.9.0",
  "byteorder",
+ "chrono",
  "diesel_derives",
  "itoa 1.0.15",
  "pq-sys",
  "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "diesel-enum"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4b8470493d7120fd53f7d7db6ad167c2bc06fdf8abb3cef7e7669eb1347b415"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1563,6 +1580,7 @@ dependencies = [
  "tokio-tungstenite 0.26.2",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -2034,6 +2052,19 @@ dependencies = [
  "libc",
  "system-deps 6.2.2",
  "x11",
+]
+
+[[package]]
+name = "generator"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cc16584ff22b460a382b7feec54b23d2908d858152e5739a120b949293bd74e"
+dependencies = [
+ "cc",
+ "libc",
+ "log",
+ "rustversion",
+ "windows 0.48.0",
 ]
 
 [[package]]
@@ -3134,6 +3165,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
 dependencies = [
  "value-bag",
+]
+
+[[package]]
+name = "loom"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff50ecb28bb86013e935fb6683ab1f6d3a20016f123c76fd4c27470076ac30f5"
+dependencies = [
+ "cfg-if",
+ "generator",
+ "scoped-tls",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -5074,6 +5120,9 @@ dependencies = [
  "bincode",
  "binrw",
  "bitflags 2.9.0",
+ "chrono",
+ "diesel",
+ "diesel-enum",
  "serde",
  "serde_bytes",
  "serde_derive",
@@ -5323,6 +5372,12 @@ dependencies = [
  "serde_derive_internals",
  "syn 2.0.100",
 ]
+
+[[package]]
+name = "scoped-tls"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
 name = "scopeguard"
@@ -5796,6 +5851,7 @@ dependencies = [
  "reqwest",
  "rmp",
  "rmp-serde",
+ "rmpv",
  "rs_shared",
  "rust_socketio",
  "serde",
@@ -5903,10 +5959,13 @@ dependencies = [
  "serde",
  "socketioxide-core",
  "socketioxide-parser-common",
+ "socketioxide-parser-msgpack",
+ "state",
  "thiserror 2.0.12",
  "tokio",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -6024,6 +6083,15 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
+name = "state"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b8c4a4445d81357df8b1a650d0d0d6fbbbfe99d064aa5e02f3e4022061476d8"
+dependencies = [
+ "loom",
+]
 
 [[package]]
 name = "static_assertions"
@@ -7881,6 +7949,15 @@ dependencies = [
  "raw-window-handle",
  "windows-sys 0.59.0",
  "windows-version",
+]
+
+[[package]]
+name = "windows"
+version = "0.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e686886bc078bc1b0b600cac0147aadb815089b6e4da64016cbd754b6342700f"
+dependencies = [
+ "windows-targets 0.48.5",
 ]
 
 [[package]]

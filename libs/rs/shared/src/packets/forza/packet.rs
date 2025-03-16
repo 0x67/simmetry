@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::i32_to_bool;
 
+use super::enums::{ForzaCarClass, ForzaDriveType};
+
 const _FM7_SLED_PACKET_SIZE: u32 = 232;
 const FM7_DASH_PACKET_SIZE: u32 = 311;
 const FH4_SLED_PACKET_SIZE: u32 = 324;
@@ -15,31 +17,6 @@ fn get_offset(packet_size: u32) -> u64 {
         FH4_SLED_PACKET_SIZE => 12,
         _ => 0,
     }
-}
-
-#[non_exhaustive]
-#[derive(
-    BinRead, Eq, PartialEq, Ord, PartialOrd, Copy, Clone, Debug, Hash, Serialize, Deserialize,
-)]
-#[br(little, repr(i32))]
-pub enum ForzaDriveType {
-    FWD = 0,
-    RWD = 1,
-    AWD = 2,
-}
-
-#[non_exhaustive]
-#[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
-#[br(little, repr(i32))]
-pub enum ForzaCarClass {
-    D = 0,
-    C = 1,
-    B = 2,
-    A = 3,
-    S1 = 4,
-    S2 = 5,
-    S3 = 6,
-    X = 7,
 }
 
 #[non_exhaustive]
@@ -160,129 +137,129 @@ pub struct ForzaPacketData {
     // Start of dash data
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size)  + 232))]
-    pub position_x: f32,
+    pub position_x: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 236))]
-    pub position_y: f32,
+    pub position_y: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 240))]
-    pub position_z: f32,
+    pub position_z: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 244))]
-    pub speed: f32,
+    pub speed: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 248))]
-    pub power: f32,
+    pub power: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 252))]
-    pub torque: f32,
+    pub torque: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 256))]
-    pub tire_temp_front_left: f32,
+    pub tire_temp_front_left: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 260))]
-    pub tire_temp_front_right: f32,
+    pub tire_temp_front_right: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 264))]
-    pub tire_temp_rear_left: f32,
+    pub tire_temp_rear_left: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 268))]
-    pub tire_temp_rear_right: f32,
+    pub tire_temp_rear_right: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 272))]
-    pub boost: f32,
+    pub boost: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 276))]
-    pub fuel: f32,
+    pub fuel: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 280))]
-    pub distance_traveled: f32,
+    pub distance_traveled: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 284))]
-    pub best_lap: f32,
+    pub best_lap: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 288))]
-    pub last_lap: f32,
+    pub last_lap: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 292))]
-    pub current_lap: f32,
+    pub current_lap: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 296))]
-    pub current_race_time: f32,
+    pub current_race_time: Option<f32>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 300))]
-    pub lap_number: u16,
+    pub lap_number: Option<u16>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 302))]
-    pub position: u8,
+    pub position: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 303))]
-    pub acceleration: u8,
+    pub acceleration: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 304))]
-    pub brake: u8,
+    pub brake: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 305))]
-    pub clutch: u8,
+    pub clutch: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 306))]
-    pub handbrake: u8,
+    pub handbrake: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 307))]
-    pub gear: u8,
+    pub gear: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 308))]
-    pub steer: i8,
+    pub steer: Option<i8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 309))]
-    pub normalized_driving_lane: i8,
+    pub normalized_driving_lane: Option<i8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 310))]
-    pub normalized_ai_brake_difference: i8,
+    pub normalized_ai_brake_difference: Option<i8>,
 
     #[br(if(packet_size >= FM8_SLED_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 311))]
-    pub tire_wear_front_left: f32,
+    pub tire_wear_front_left: Option<f32>,
 
     #[br(if(packet_size >= FM8_SLED_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 315))]
-    pub tire_wear_front_right: f32,
+    pub tire_wear_front_right: Option<f32>,
 
     #[br(if(packet_size >= FM8_SLED_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 319))]
-    pub tire_wear_rear_left: f32,
+    pub tire_wear_rear_left: Option<f32>,
 
     #[br(if(packet_size >= FM8_SLED_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 323))]
-    pub tire_wear_rear_right: f32,
+    pub tire_wear_rear_right: Option<f32>,
 
     #[br(if(packet_size == FM8_SLED_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 327))]
-    pub track_id: i32,
+    pub track_id: Option<i32>,
 }

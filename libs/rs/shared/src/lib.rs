@@ -3,6 +3,13 @@ use constants::GameType;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg(feature = "db")]
+extern crate diesel;
+
+#[cfg(feature = "db")]
+#[macro_use]
+pub mod macros;
+
 pub mod constants;
 pub mod packets;
 pub mod utils;
