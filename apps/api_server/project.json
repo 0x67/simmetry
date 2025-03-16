@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "apps/api_server/src",
+  "tags": [],
   "targets": {
     "serve": {
       "cache": true,
@@ -58,6 +59,5 @@
         }
       }
     }
-  },
-  "tags": []
+  }
 }

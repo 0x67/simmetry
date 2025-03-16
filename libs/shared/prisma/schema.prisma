@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+enum GameType {
+  F12024
+  F12023
+  F12022
+  FH5
+  FH4
+  FM7
+  FM8
+}
+
+model F1Data {
+  id         String   @id
+  game_type  GameType
+  is_race_on Boolean  @default(false)
+  date_time  DateTime @db.Timestamptz()
+
+  @@map("f1_data")
+}

@@ -1,0 +1,53 @@
+{
+  "name": "shared",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/shared",
+        "main": "libs/shared/src/index.ts",
+        "tsConfig": "libs/shared/tsconfig.lib.json",
+        "assets": ["libs/shared/*.md"]
+      }
+    },
+    "prisma": {
+      "command": "pnpm prisma",
+      "options": {
+        "cwd": "libs/shared/prisma"
+      }
+    },
+    "prisma-deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma migrate deploy"
+      }
+    },
+    "prisma-migrate-create": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma migrate dev"
+      }
+    },
+    "prisma-migrate-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma migrate dev"
+      }
+    },
+    "prisma-generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma generate"
+      }
+    }
+  }
+}
