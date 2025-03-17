@@ -254,12 +254,6 @@ async fn handle_ws_emitter(
                             let (seconds, nanos) = ts.to_unix();
                             let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
 
-                            #[cfg(debug_assertions)]
-                            {
-                                let parsed = parse_forza_packet(&buf);
-                                info!("Parsed packet: {:?}", parsed);
-                            }
-
                             let payload = WebsocketPayload {
                                 id: Uuid::new_v7(ts),
                                 game_type,

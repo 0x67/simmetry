@@ -4,6 +4,13 @@
   "projectType": "library",
   "sourceRoot": "libs/rs/shared/src",
   "targets": {
+    "diesel": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/rs/shared",
+        "command": "diesel"
+      }
+    },
     "build": {
       "executor": "@monodon/rust:check",
       "outputs": ["{options.target-dir}"],

@@ -5,18 +5,22 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.8.1", features = ["macros"] }
+bigdecimal = "0.4.7"
 bincode = { version = "2.0.1", features = ["serde", "derive"] }
 binrw = "0.14.1"
 bitflags = "2.9.0"
 chrono = { version = "0.4.40", features = ["serde"] }
 deadpool-diesel = { version = "0.6.1", features = ["postgres"] }
-diesel = { version = "2.2.0", features = [
+diesel = { version = "2.2.8", features = [
   "postgres",
   "serde_json",
   "uuid",
   "chrono",
+  "64-column-tables",
+  "128-column-tables",
+  "numeric",
 ] }
-diesel-enum = "0.2.1"
+diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 futures = "0.3.31"
 futures-util = "0.3.31"
 hyper = { version = "1.6.0", features = ["http1", "http2", "server"] }

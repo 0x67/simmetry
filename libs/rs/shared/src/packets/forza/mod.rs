@@ -1,11 +1,7 @@
-pub mod enums;
 pub mod packet;
 use binrw::io::Cursor;
 use binrw::{BinReaderExt, BinResult};
 use packet::ForzaPacketData;
-
-#[cfg(feature = "db")]
-pub mod schema;
 
 pub fn parse_forza_packet<T: AsRef<[u8]>>(data: T) -> BinResult<ForzaPacketData> {
     let byte_size = data.as_ref().len() as u32; // Get the byte size of the data

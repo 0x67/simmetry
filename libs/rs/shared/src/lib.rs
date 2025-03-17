@@ -9,8 +9,9 @@ extern crate diesel;
 #[cfg(feature = "db")]
 #[macro_use]
 pub mod macros;
-
 pub mod constants;
+pub mod database;
+
 pub mod packets;
 pub mod utils;
 

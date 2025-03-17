@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS "forza_data";
+DROP TYPE IF EXISTS "ForzaType";

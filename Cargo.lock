@@ -107,13 +107,14 @@ name = "api_server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bigdecimal",
  "bincode",
  "binrw",
  "bitflags 2.9.0",
  "chrono",
  "deadpool-diesel",
  "diesel",
- "diesel-enum",
+ "diesel-derive-enum",
  "futures",
  "futures-util",
  "hyper",
@@ -523,6 +524,19 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "bigdecimal"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f31f3af01c5c65a07985c804d3366560e6fa7883d640a122819b14ec327482c"
+dependencies = [
+ "autocfg",
+ "libm",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+]
 
 [[package]]
 name = "bincode"
@@ -1317,25 +1331,30 @@ version = "2.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "470eb10efc8646313634c99bb1593f402a6434cbd86e266770c6e39219adb86a"
 dependencies = [
+ "bigdecimal",
  "bitflags 2.9.0",
  "byteorder",
  "chrono",
  "diesel_derives",
  "itoa 1.0.15",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
  "pq-sys",
  "serde_json",
  "uuid",
 ]
 
 [[package]]
-name = "diesel-enum"
-version = "0.2.1"
+name = "diesel-derive-enum"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4b8470493d7120fd53f7d7db6ad167c2bc06fdf8abb3cef7e7669eb1347b415"
+checksum = "81c5131a2895ef64741dad1d483f358c2a229a3a2d1b256778cdc5e146db64d4"
 dependencies = [
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -3118,6 +3137,12 @@ dependencies = [
  "cfg-if",
  "winapi",
 ]
+
+[[package]]
+name = "libm"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
 
 [[package]]
 name = "libredox"
@@ -5117,12 +5142,13 @@ dependencies = [
 name = "rs_shared"
 version = "0.1.0"
 dependencies = [
+ "bigdecimal",
  "bincode",
  "binrw",
  "bitflags 2.9.0",
  "chrono",
  "diesel",
- "diesel-enum",
+ "diesel-derive-enum",
  "serde",
  "serde_bytes",
  "serde_derive",

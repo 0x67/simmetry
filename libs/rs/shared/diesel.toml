@@ -1,0 +1,16 @@
+# For documentation on how to configure this file,
+# see https://diesel.rs/guides/configuring-diesel-cli
+
+[print_schema]
+file = "src/database/schema.rs"
+# custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
+import_types = [
+  "diesel::sql_types::*",
+  "crate::database::models::forza::export::ForzaType",
+  "crate::database::models::forza::export::AssettoCorsaType",
+  "crate::database::models::forza::export::F1Type",
+]
+generate_missing_sql_type_definitions = false
+
+[migrations_directory]
+dir = "K:\\Project\\simmetry\\simmetry\\libs\\rs\\shared\\migrations"

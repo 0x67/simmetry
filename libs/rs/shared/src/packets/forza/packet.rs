@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::i32_to_bool;
 
-use super::enums::{ForzaCarClass, ForzaDriveType};
+use crate::database::models::forza::{ForzaCarClass, ForzaDriveType};
 
 const _FM7_SLED_PACKET_SIZE: u32 = 232;
 const FM7_DASH_PACKET_SIZE: u32 = 311;

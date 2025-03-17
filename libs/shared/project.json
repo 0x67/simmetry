@@ -16,9 +16,10 @@
       }
     },
     "prisma": {
-      "command": "pnpm prisma",
+      "executor": "nx:run-commands",
       "options": {
-        "cwd": "libs/shared/prisma"
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma"
       }
     },
     "prisma-deploy": {

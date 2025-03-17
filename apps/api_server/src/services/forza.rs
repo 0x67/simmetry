@@ -1,12 +1,47 @@
-use diesel::{PgConnection, RunQueryDsl, SelectableHelper};
-use rs_shared::packets::forza::schema::{InsertF1Data, QueryF1Data};
+use deadpool_diesel::postgres::Pool;
+use diesel::RunQueryDsl;
+use rs_shared::database::models::forza::ForzaData;
 
-pub fn create_f1_data(conn: &mut PgConnection, data: &InsertF1Data) {
-    use rs_shared::packets::forza::schema::f1_data::dsl::f1_data;
+#[derive(Clone)]
+pub struct ForzaService {
+    pub pool: Pool,
+}
 
-    diesel::insert_into(f1_data)
-        .values(data)
-        .returning(QueryF1Data::as_returning())
-        .get_result(conn)
-        .expect("Error saving new post");
+impl ForzaService {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn create_forza_data(
+        &self,
+        data: ForzaData,
+    ) -> Result<ForzaData, diesel::result::Error> {
+        use rs_shared::database::schema::forza_data;
+
+        let pool = self.pool.clone();
+
+        let conn = pool.get().await.map_err(|e| {
+            eprintln!("Failed to get database connection: {:?}", e);
+            diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                Box::new(e.to_string()),
+            )
+        })?;
+        let result = conn
+            .interact(move |conn| {
+                diesel::insert_into(forza_data::table)
+                    .values(data)
+                    .get_result::<ForzaData>(conn)
+            })
+            .await
+            .map_err(|e| {
+                eprintln!("Interact error: {:?}", e);
+                diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                    Box::new(e.to_string()),
+                )
+            })??;
+
+        Ok(result)
+    }
 }
