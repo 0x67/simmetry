@@ -68,15 +68,10 @@ impl CreateUdpListenerPayload {
     }
 }
 
-const MAX_RETRIES: u8 = 3;
-const MAX_AGE_SECS: u64 = 10;
-const MAX_QUEUE_SIZE: usize = 10 * 60;
-
 #[tauri::command(rename_all = "snake_case")]
 pub async fn cmd_create_udp_listener(
     app_handle: AppHandle,
     payload: CreateUdpListenerPayload,
-    state: State<'_, AppState>,
 ) -> Result<UdpSuccessResponse, UdpErrorResponse> {
     if let Err(e) = payload.validate() {
         return Err(UdpErrorResponse {
@@ -242,54 +237,53 @@ async fn handle_ws_emitter(
         state.ws_emitter_tokens.insert(game_type, token.clone());
 
         tracker.spawn(async move {
-            loop {
-                tokio::select! {
-                    _ = token.cancelled() => {
-                        break;
-                    }
-                    result = ws_rx.recv() => {
-                        if let Some((buf, _)) = result {
-                            let ts = timestamp::Timestamp::now(ContextV7::new());
-                            let (seconds, nanos) = ts.to_unix();
-                            let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
+          // timer for 100ms tick (~10Hz)
+          // TODO: maybe later allow for dynamic tick rate
+          let mut interval = tokio::time::interval(Duration::from_millis(100));
+          // latest message
+          let mut latest_message: Option<(Vec<u8>, SocketAddr)> = None;
 
-                            let payload = WebsocketPayload {
-                                id: Uuid::new_v7(ts),
-                                game_type,
-                                timestamp: ts_nanos,
-                                data: buf.clone(),
-                            };
+          loop {
+              tokio::select! {
+                  _ = token.cancelled() => {
+                      break;
+                  }
+                  // Only emit the latest message
+                  _ = interval.tick() => {
+                      if let Some((buf, _src)) = latest_message.take() {
+                          let ts = timestamp::Timestamp::now(ContextV7::new());
+                          let (seconds, nanos) = ts.to_unix();
+                          let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
 
-                            let buf = rmp_serde::to_vec(&payload).unwrap();
-                            if let Err(e) = ws_client
-                                // NOTE: current crate version ack not working
-                                // .emit_with_ack(
-                                //     "message-ack",
-                                //     buf.clone(),
-                                //     tokio::time::Duration::from_secs(10),
-                                //     |_, _| async move {}.boxed(),
-                                // )
-                                .emit("message", buf.clone())
-                                .await
-                            {
-                                error!("Failed to emit WebSocket message: {}", e);
+                          let payload = WebsocketPayload {
+                              id: Uuid::new_v7(ts),
+                              game_type,
+                              timestamp: ts_nanos,
+                              data: buf.clone(),
+                          };
 
-                                // let mut queue = failed_messages.lock().await;
-                                // if queue.len() >= MAX_QUEUE_SIZE {
-                                //     queue.pop_front();
-                                // }
+                          let ws_payload = match rmp_serde::to_vec(&payload) {
+                              Ok(vec) => vec,
+                              Err(e) => {
+                                  error!("Failed to serialize websocket payload: {}", e);
+                                  continue;
+                              }
+                          };
 
-                                // queue.push_back(QueuedMessage {
-                                //     buf: buf.clone(),
-                                //     retries: 0,
-                                //     added: SystemTime::now(),
-                                // });
-                            }
-                        }
-                    }
-                }
-            }
-        });
+                          if let Err(e) = ws_client.emit("message", ws_payload).await {
+                              error!("Failed to emit WebSocket message: {}", e);
+                          }
+                      }
+                  }
+                  // Continuously update the latest_message with incoming messages.
+                  result = ws_rx.recv() => {
+                      if let Some((buf, src)) = result {
+                          latest_message = Some((buf, src));
+                      }
+                  }
+              }
+          }
+      });
     }
 }
 
