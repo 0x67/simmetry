@@ -51,6 +51,9 @@ pub struct CreateUdpListenerPayload {
 impl CreateUdpListenerPayload {
     pub fn validate(&self) -> Result<(), String> {
         if let Some(hosts) = &self.forward_hosts {
+            if hosts.len() >= 5 {
+                return Err("Too many forward hosts".to_string());
+            }
             for host in hosts {
                 if let Some((ip, port)) = host.rsplit_once(':') {
                     if IpAddr::from_str(ip).is_err() {
