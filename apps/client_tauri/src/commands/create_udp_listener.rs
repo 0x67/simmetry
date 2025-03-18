@@ -1,35 +1,21 @@
 use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
-use crate::ws_client::{self, create_ws_client};
-use futures_util::FutureExt;
+use crate::ws_client::create_ws_client;
 use rmp_serde;
 use rs_shared::{constants::GameType, packets::forza::parse_forza_packet, WebsocketPayload};
-use rust_socketio::asynchronous::Client;
-use rust_socketio::payload;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::VecDeque,
     net::{IpAddr, SocketAddr},
     str::FromStr,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+    sync::Arc,
     time::SystemTime,
 };
-use tauri::async_runtime::{channel, Sender};
 use tauri::{
-    async_runtime::{spawn, JoinHandle},
-    AppHandle, Manager, State,
+    async_runtime::{channel, spawn, Sender},
+    AppHandle, Manager,
 };
-use tokio::task::JoinSet;
-use tokio::{
-    net::UdpSocket,
-    sync::{mpsc, Mutex},
-    time::{sleep, Duration},
-};
-use tokio_util::sync::CancellationToken;
-use tokio_util::task::{self, TaskTracker};
+use tokio::{net::UdpSocket, sync::mpsc, task::JoinSet, time::Duration};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
