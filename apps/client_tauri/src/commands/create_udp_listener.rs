@@ -22,13 +22,14 @@ use tauri::{
     async_runtime::{spawn, JoinHandle},
     AppHandle, Manager, State,
 };
+use tokio::task::JoinSet;
 use tokio::{
     net::UdpSocket,
     sync::{mpsc, Mutex},
     time::{sleep, Duration},
 };
 use tokio_util::sync::CancellationToken;
-use tokio_util::task::TaskTracker;
+use tokio_util::task::{self, TaskTracker};
 use uuid::{timestamp, ContextV7, Uuid};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -131,15 +132,7 @@ async fn create_udp_listener(
             success: false,
         })
         .unwrap();
-
-    if let Some(forward_hosts) = &payload.forward_hosts {
-        for host in forward_hosts {
-            match socket.connect(host).await {
-                Ok(_) => info!("Connected to forward host: {}", host),
-                Err(e) => error!("Failed to connect to forward host: {}", e),
-            }
-        }
-    }
+    info!("UDP socket bound to {}", addr);
 
     let socket = Arc::new(socket);
 
@@ -207,7 +200,6 @@ async fn create_udp_listener(
                                 if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
                                     warn!("WS queue is full, dropping oldest packet");
                                 }
-
                                 if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
                                     warn!("UDP queue is full, dropping oldest packet");
                                 }
@@ -293,9 +285,6 @@ async fn handle_ws_emitter(
                                 //     added: SystemTime::now(),
                                 // });
                             }
-
-
-
                         }
                     }
                 }
@@ -344,13 +333,21 @@ async fn handle_packets_forwarding(
                     }
                     result = udp_rx.recv() => {
                         if let Some((buf, _)) = result {
-                          for host in &forward_hosts {
-                                if let Err(e) = socket.send_to(&buf, host).await {
-                                    error!("Failed to send packet to host: {}", e);
-                                }
-                          }
-                        }
+                          let tasks: JoinSet<_> = forward_hosts.iter().map(|host| {
+                            let socket = socket.clone();
+                            let buf = buf.clone();
+                            let host = host.clone();
 
+                            spawn(async move {
+                                if let Err(e) = socket.send_to(&buf, &host).await {
+                                      error!("Failed to send packet to {}: {}", host, e);
+                                    }
+                                })
+                            })
+                            .collect();
+
+                          tasks.join_all().await;
+                        }
                     }
                 }
             }
