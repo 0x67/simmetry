@@ -9,6 +9,18 @@ datasource db {
   // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
+model User {
+  id              String           @id @default(uuid())
+  name            String
+  email           String           @unique
+  password        String
+  created_at      DateTime         @default(now()) @db.Timestamptz()
+  updated_at      DateTime         @updatedAt @db.Timestamptz()
+  forza_telemetry ForzaTelemetry[]
+
+  @@map("users")
+}
+
 enum ForzaType {
   FH5
   FH4
@@ -39,11 +51,13 @@ enum ForzaDriveType {
   @@map("forza_drive_type")
 }
 
-model ForzaData {
-  id         String    @id
-  game_type  ForzaType
-  is_race_on Boolean   @default(false)
-  date_time  DateTime  @db.Timestamptz()
+model ForzaTelemetry {
+  id        String
+  user_id   String
+  game_type ForzaType
+
+  is_race_on Boolean  @default(false)
+  date_time  DateTime @db.Timestamptz()
 
   car_id                Int            @db.Integer()
   car_class             ForzaCarClass
@@ -51,93 +65,93 @@ model ForzaData {
   drive_type            ForzaDriveType
   track_id              Int?           @db.Integer()
 
-  num_cylinders      Int     @db.Integer()
-  engine_max_rpm     Decimal @db.Decimal(10, 6)
-  engine_idle_rpm    Decimal @db.Decimal(10, 6)
-  engine_current_rpm Decimal @db.Decimal(10, 6)
+  num_cylinders      Int   @db.Integer()
+  engine_max_rpm     Float @db.Real
+  engine_idle_rpm    Float @db.Real
+  engine_current_rpm Float @db.Real
 
-  acceleration_x Decimal @db.Decimal(10, 6)
-  acceleration_y Decimal @db.Decimal(10, 6)
-  acceleration_z Decimal @db.Decimal(10, 6)
+  acceleration_x Float @db.Real
+  acceleration_y Float @db.Real
+  acceleration_z Float @db.Real
 
-  velocity_x Decimal @db.Decimal(10, 6)
-  velocity_y Decimal @db.Decimal(10, 6)
-  velocity_z Decimal @db.Decimal(10, 6)
+  velocity_x Float @db.Real
+  velocity_y Float @db.Real
+  velocity_z Float @db.Real
 
-  angular_velocity_x Decimal @db.Decimal(10, 6)
-  angular_velocity_y Decimal @db.Decimal(10, 6)
-  angular_velocity_z Decimal @db.Decimal(10, 6)
+  angular_velocity_x Float @db.Real
+  angular_velocity_y Float @db.Real
+  angular_velocity_z Float @db.Real
 
-  yaw   Decimal @db.Decimal(10, 6)
-  pitch Decimal @db.Decimal(10, 6)
-  roll  Decimal @db.Decimal(10, 6)
+  yaw   Float @db.Real
+  pitch Float @db.Real
+  roll  Float @db.Real
 
-  normalized_suspension_travel_front_left  Decimal @db.Decimal(10, 6)
-  normalized_suspension_travel_front_right Decimal @db.Decimal(10, 6)
-  normalized_suspension_travel_rear_left   Decimal @db.Decimal(10, 6)
-  normalized_suspension_travel_rear_right  Decimal @db.Decimal(10, 6)
+  normalized_suspension_travel_front_left  Float @db.Real
+  normalized_suspension_travel_front_right Float @db.Real
+  normalized_suspension_travel_rear_left   Float @db.Real
+  normalized_suspension_travel_rear_right  Float @db.Real
 
-  tire_slip_ratio_front_left  Decimal @db.Decimal(10, 6)
-  tire_slip_ratio_front_right Decimal @db.Decimal(10, 6)
-  tire_slip_ratio_rear_left   Decimal @db.Decimal(10, 6)
-  tire_slip_ratio_rear_right  Decimal @db.Decimal(10, 6)
+  tire_slip_ratio_front_left  Float @db.Real
+  tire_slip_ratio_front_right Float @db.Real
+  tire_slip_ratio_rear_left   Float @db.Real
+  tire_slip_ratio_rear_right  Float @db.Real
 
-  wheel_rotation_speed_front_left  Decimal @db.Decimal(10, 6)
-  wheel_rotation_speed_front_right Decimal @db.Decimal(10, 6)
-  wheel_rotation_speed_rear_left   Decimal @db.Decimal(10, 6)
-  wheel_rotation_speed_rear_right  Decimal @db.Decimal(10, 6)
+  wheel_rotation_speed_front_left  Float @db.Real
+  wheel_rotation_speed_front_right Float @db.Real
+  wheel_rotation_speed_rear_left   Float @db.Real
+  wheel_rotation_speed_rear_right  Float @db.Real
 
   wheel_on_rumble_strip_front_left  Boolean
   wheel_on_rumble_strip_front_right Boolean
   wheel_on_rumble_strip_rear_left   Boolean
   wheel_on_rumble_strip_rear_right  Boolean
 
-  wheel_in_puddle_front_left  Decimal @db.Decimal(10, 6)
-  wheel_in_puddle_front_right Decimal @db.Decimal(10, 6)
-  wheel_in_puddle_rear_left   Decimal @db.Decimal(10, 6)
-  wheel_in_puddle_rear_right  Decimal @db.Decimal(10, 6)
+  wheel_in_puddle_front_left  Float @db.Real
+  wheel_in_puddle_front_right Float @db.Real
+  wheel_in_puddle_rear_left   Float @db.Real
+  wheel_in_puddle_rear_right  Float @db.Real
 
-  surface_rumble_front_left  Decimal @db.Decimal(10, 6)
-  surface_rumble_front_right Decimal @db.Decimal(10, 6)
-  surface_rumble_rear_left   Decimal @db.Decimal(10, 6)
-  surface_rumble_rear_right  Decimal @db.Decimal(10, 6)
+  surface_rumble_front_left  Float @db.Real
+  surface_rumble_front_right Float @db.Real
+  surface_rumble_rear_left   Float @db.Real
+  surface_rumble_rear_right  Float @db.Real
 
-  tire_slip_angle_front_left  Decimal @db.Decimal(10, 6)
-  tire_slip_angle_front_right Decimal @db.Decimal(10, 6)
-  tire_slip_angle_rear_left   Decimal @db.Decimal(10, 6)
-  tire_slip_angle_rear_right  Decimal @db.Decimal(10, 6)
+  tire_slip_angle_front_left  Float @db.Real
+  tire_slip_angle_front_right Float @db.Real
+  tire_slip_angle_rear_left   Float @db.Real
+  tire_slip_angle_rear_right  Float @db.Real
 
-  tire_combined_slip_front_left  Decimal @db.Decimal(10, 6)
-  tire_combined_slip_front_right Decimal @db.Decimal(10, 6)
-  tire_combined_slip_rear_left   Decimal @db.Decimal(10, 6)
-  tire_combined_slip_rear_right  Decimal @db.Decimal(10, 6)
+  tire_combined_slip_front_left  Float @db.Real
+  tire_combined_slip_front_right Float @db.Real
+  tire_combined_slip_rear_left   Float @db.Real
+  tire_combined_slip_rear_right  Float @db.Real
 
-  suspension_travel_meters_front_left  Decimal @db.Decimal(10, 6)
-  suspension_travel_meters_front_right Decimal @db.Decimal(10, 6)
-  suspension_travel_meters_rear_left   Decimal @db.Decimal(10, 6)
-  suspension_travel_meters_rear_right  Decimal @db.Decimal(10, 6)
+  suspension_travel_meters_front_left  Float @db.Real
+  suspension_travel_meters_front_right Float @db.Real
+  suspension_travel_meters_rear_left   Float @db.Real
+  suspension_travel_meters_rear_right  Float @db.Real
 
-  position_x Decimal? @db.Decimal(10, 6)
-  position_y Decimal? @db.Decimal(10, 6)
-  position_z Decimal? @db.Decimal(10, 6)
+  position_x Float? @db.Real
+  position_y Float? @db.Real
+  position_z Float? @db.Real
 
-  speed  Decimal? @db.Decimal(10, 6)
-  power  Decimal? @db.Decimal(10, 6)
-  torque Decimal? @db.Decimal(10, 6)
+  speed  Float? @db.Real
+  power  Float? @db.Real
+  torque Float? @db.Real
 
-  tire_temp_front_left  Decimal? @db.Decimal(10, 6)
-  tire_temp_front_right Decimal? @db.Decimal(10, 6)
-  tire_temp_rear_left   Decimal? @db.Decimal(10, 6)
-  tire_temp_rear_right  Decimal? @db.Decimal(10, 6)
+  tire_temp_front_left  Float? @db.Real
+  tire_temp_front_right Float? @db.Real
+  tire_temp_rear_left   Float? @db.Real
+  tire_temp_rear_right  Float? @db.Real
 
-  boost             Decimal? @db.Decimal(10, 6)
-  fuel              Decimal? @db.Decimal(10, 6)
-  distance_traveled Decimal? @db.Decimal(10, 6)
+  boost             Float? @db.Real
+  fuel              Float? @db.Real
+  distance_traveled Float? @db.Real
 
-  best_lap          Decimal? @db.Decimal(10, 6)
-  last_lap          Decimal? @db.Decimal(10, 6)
-  current_lap       Decimal? @db.Decimal(10, 6)
-  current_race_time Decimal? @db.Decimal(10, 6)
+  best_lap          Float? @db.Real
+  last_lap          Float? @db.Real
+  current_lap       Float? @db.Real
+  current_race_time Float? @db.Real
   lap_number        Int?
   position          Int?
 
@@ -150,10 +164,13 @@ model ForzaData {
 
   normalized_driving_lane        Int?
   normalized_ai_brake_difference Int?
-  tire_wear_front_left           Decimal? @db.Decimal(10, 6)
-  tire_wear_front_right          Decimal? @db.Decimal(10, 6)
-  tire_wear_rear_left            Decimal? @db.Decimal(10, 6)
-  tire_wear_rear_right           Decimal? @db.Decimal(10, 6)
+  tire_wear_front_left           Float? @db.Real
+  tire_wear_front_right          Float? @db.Real
+  tire_wear_rear_left            Float? @db.Real
+  tire_wear_rear_right           Float? @db.Real
 
-  @@map("forza_data")
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, game_type, date_time], name: "forza_telemetry_user_id_game_type_date_time_pkey")
+  @@map("forza_telemetry")
 }
