@@ -49,6 +49,13 @@
         "cwd": "libs/shared/prisma",
         "command": "pnpm prisma generate"
       }
+    },
+    "prisma-pull": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/shared/prisma",
+        "command": "pnpm prisma db pull"
+      }
     }
   }
 }
