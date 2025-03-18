@@ -2,7 +2,6 @@ use crate::app_state::AppState;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use rmpv::Value;
 use rs_shared::{
-    constants::GameType,
     database::models::forza::{ForzaData, ForzaType},
     packets::forza::parse_forza_packet,
     WebsocketPayload,
@@ -21,7 +20,8 @@ pub async fn socket_on_connect<A: Adapter>(
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
 
-    let forza_service = state.forza_service.clone();
+    let forza_data_sender = state.forza_data_sender.clone();
+
     socket.on("ping", |socket: SocketRef<A>| {
         info!("Pong received for {:?} namespace", socket.ns());
         socket.emit("pong", "🏓").ok();
@@ -296,10 +296,7 @@ pub async fn socket_on_connect<A: Adapter>(
                                     .flatten(),
                             };
 
-                            // if let Err(e) = forza_service.create_forza_data(insert_forza_data).await
-                            // {
-                            //     warn!("Error creating forza data: {:?}", e);
-                            // }
+                            forza_data_sender.send(insert_forza_data).unwrap();
                         }
                     }
                 }

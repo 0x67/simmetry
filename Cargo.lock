@@ -112,6 +112,7 @@ dependencies = [
  "binrw",
  "bitflags 2.9.0",
  "chrono",
+ "crossbeam-channel",
  "deadpool-diesel",
  "diesel",
  "diesel-derive-enum",
@@ -5869,6 +5870,7 @@ name = "simmetry"
 version = "0.0.1"
 dependencies = [
  "bincode",
+ "crossbeam-channel",
  "dirs",
  "futures-util",
  "once_cell",

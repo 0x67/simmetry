@@ -89,7 +89,13 @@ pub async fn cmd_create_udp_listener(
     let (ws_tx, ws_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
     let (udp_tx, udp_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
 
-    create_udp_listener(payload.clone(), app_handle.clone(), ws_tx.clone()).await;
+    create_udp_listener(
+        payload.clone(),
+        app_handle.clone(),
+        ws_tx.clone(),
+        udp_tx.clone(),
+    )
+    .await;
 
     if let Some(forward_hosts) = payload.forward_hosts {
         handle_packets_forwarding(
@@ -114,6 +120,7 @@ async fn create_udp_listener(
     payload: CreateUdpListenerPayload,
     app_handle: AppHandle,
     ws_tx: Sender<(Vec<u8>, SocketAddr)>,
+    udp_tx: Sender<(Vec<u8>, SocketAddr)>,
 ) -> Arc<UdpSocket> {
     let addr = format!("0.0.0.0:{}", payload.port);
     let game_type = payload.game_type;
@@ -201,9 +208,9 @@ async fn create_udp_listener(
                                     warn!("WS queue is full, dropping oldest packet");
                                 }
 
-                                // if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                                //     warn!("UDP queue is full, dropping oldest packet");
-                                // }
+                                if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                    warn!("UDP queue is full, dropping oldest packet");
+                                }
                             }
                             // false positive
                             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {

@@ -14,7 +14,7 @@ const telemetryStatusColor = ref({
 });
 
 const UDP_PAYLOAD = {
-  // port: 20777, // wheel => forwarded from wheel app
+  forward_hosts: ['127.0.0.1:5300'],
   port: 22024, // controller
   host: '0.0.0.0',
   game_type: 'FH5',

@@ -4,9 +4,10 @@ mod services;
 
 use app_state::AppState;
 use axum::routing::get;
+use crossbeam_channel::unbounded;
 use handlers::ws::socket_on_connect;
 use once_cell::sync::OnceCell;
-use rs_shared::constants::GameType;
+use rs_shared::{constants::GameType, database::models::forza::ForzaData};
 use services::forza::ForzaService;
 use socketioxide::SocketIo;
 use socketioxide_redis::{RedisAdapter, RedisAdapterCtr};
@@ -36,12 +37,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = redis::Client::open("redis://127.0.0.1:6380?protocol=resp3")?;
     let adapter = RedisAdapterCtr::new_with_redis(&client).await?;
 
+    let (forza_data_sender, forza_data_receiver) = unbounded::<ForzaData>();
+
     let forza_service = Arc::new(ForzaService::new(pool.clone()));
 
     let app_state = AppState {
         pool,
         forza_service: forza_service.clone(),
+        forza_data_sender,
     };
+
+    tokio::spawn(async move {
+        while let Ok(forza_data) = forza_data_receiver.recv() {
+            if let Err(e) = forza_service.create_forza_data(forza_data).await {
+                warn!("Error creating forza data: {:?}", e);
+            }
+        }
+    });
 
     info!("Building socket.io layer");
     let (layer, io) = SocketIo::builder()
