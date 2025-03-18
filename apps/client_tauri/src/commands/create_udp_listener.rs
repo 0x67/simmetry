@@ -234,6 +234,7 @@ async fn handle_ws_emitter(
     {
         let token = token.clone();
         let tracker = tracker.clone();
+        let app_handle = app_handle.clone();
         let ws_client = state.ws_clients.get(&game_type).unwrap().clone();
 
         state.ws_emitter_trackers.insert(game_type, tracker.clone());
@@ -249,6 +250,13 @@ async fn handle_ws_emitter(
           loop {
               tokio::select! {
                   _ = token.cancelled() => {
+                      let state = app_handle.state::<AppState>();
+                      let mut state = state.lock().await;
+
+                      state.ws_emitter_trackers.remove(&game_type);
+                      state.ws_emitter_tokens.remove(&game_type);
+                      state.ws_clients.remove(&game_type);
+
                       break;
                   }
                   // Only emit the latest message
