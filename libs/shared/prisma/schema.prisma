@@ -12,12 +12,13 @@ datasource db {
 model User {
   id              String           @id @default(uuid())
   name            String
-  email           String           @unique
+  email           String
   password        String
   created_at      DateTime         @default(now()) @db.Timestamptz()
   updated_at      DateTime         @updatedAt @db.Timestamptz()
   forza_telemetry ForzaTelemetry[]
 
+  @@unique([email], name: "users_email_key")
   @@map("users")
 }
 
@@ -52,98 +53,27 @@ enum ForzaDriveType {
 }
 
 model ForzaTelemetry {
-  id        String
-  user_id   String
-  game_type ForzaType
+  id         String
+  user_id    String
+  game_type  ForzaType
+  date_time  DateTime  @db.Timestamptz()
+  is_race_on Boolean   @default(false)
 
-  is_race_on Boolean  @default(false)
-  date_time  DateTime @db.Timestamptz()
-
-  car_id                Int            @db.Integer()
-  car_class             ForzaCarClass
-  car_performance_index Int            @db.Integer()
   drive_type            ForzaDriveType
-  track_id              Int?           @db.Integer()
+  car_class             ForzaCarClass
+  car_id                Int            @db.Integer()
+  car_performance_index Int            @db.Integer()
   num_cylinders         Int            @db.Integer()
 
   engine_max_rpm     Float @db.Real
   engine_idle_rpm    Float @db.Real
   engine_current_rpm Float @db.Real
 
-  acceleration_x Float @db.Real
-  acceleration_y Float @db.Real
-  acceleration_z Float @db.Real
+  track_id Int? @db.Integer()
 
-  velocity_x Float @db.Real
-  velocity_y Float @db.Real
-  velocity_z Float @db.Real
-
-  angular_velocity_x Float @db.Real
-  angular_velocity_y Float @db.Real
-  angular_velocity_z Float @db.Real
-
-  yaw   Float @db.Real
-  pitch Float @db.Real
-  roll  Float @db.Real
-
-  normalized_suspension_travel_front_left  Float @db.Real
-  normalized_suspension_travel_front_right Float @db.Real
-  normalized_suspension_travel_rear_left   Float @db.Real
-  normalized_suspension_travel_rear_right  Float @db.Real
-
-  tire_slip_ratio_front_left  Float @db.Real
-  tire_slip_ratio_front_right Float @db.Real
-  tire_slip_ratio_rear_left   Float @db.Real
-  tire_slip_ratio_rear_right  Float @db.Real
-
-  wheel_rotation_speed_front_left  Float @db.Real
-  wheel_rotation_speed_front_right Float @db.Real
-  wheel_rotation_speed_rear_left   Float @db.Real
-  wheel_rotation_speed_rear_right  Float @db.Real
-
-  wheel_on_rumble_strip_front_left  Boolean
-  wheel_on_rumble_strip_front_right Boolean
-  wheel_on_rumble_strip_rear_left   Boolean
-  wheel_on_rumble_strip_rear_right  Boolean
-
-  wheel_in_puddle_front_left  Float @db.Real
-  wheel_in_puddle_front_right Float @db.Real
-  wheel_in_puddle_rear_left   Float @db.Real
-  wheel_in_puddle_rear_right  Float @db.Real
-
-  surface_rumble_front_left  Float @db.Real
-  surface_rumble_front_right Float @db.Real
-  surface_rumble_rear_left   Float @db.Real
-  surface_rumble_rear_right  Float @db.Real
-
-  tire_slip_angle_front_left  Float @db.Real
-  tire_slip_angle_front_right Float @db.Real
-  tire_slip_angle_rear_left   Float @db.Real
-  tire_slip_angle_rear_right  Float @db.Real
-
-  tire_combined_slip_front_left  Float @db.Real
-  tire_combined_slip_front_right Float @db.Real
-  tire_combined_slip_rear_left   Float @db.Real
-  tire_combined_slip_rear_right  Float @db.Real
-
-  suspension_travel_meters_front_left  Float @db.Real
-  suspension_travel_meters_front_right Float @db.Real
-  suspension_travel_meters_rear_left   Float @db.Real
-  suspension_travel_meters_rear_right  Float @db.Real
-
-  position_x Float? @db.Real
-  position_y Float? @db.Real
-  position_z Float? @db.Real
-
-  speed  Float? @db.Real
-  power  Float? @db.Real
-  torque Float? @db.Real
-
-  tire_temp_front_left  Float? @db.Real
-  tire_temp_front_right Float? @db.Real
-  tire_temp_rear_left   Float? @db.Real
-  tire_temp_rear_right  Float? @db.Real
-
+  speed             Float? @db.Real
+  power             Float? @db.Real
+  torque            Float? @db.Real
   boost             Float? @db.Real
   fuel              Float? @db.Real
   distance_traveled Float? @db.Real
@@ -153,7 +83,7 @@ model ForzaTelemetry {
   current_lap       Float? @db.Real
   current_race_time Float? @db.Real
   lap_number        Int?
-  position          Int?
+  race_position     Int?
 
   acceleration Int?
   brake        Int?
@@ -164,13 +94,27 @@ model ForzaTelemetry {
 
   normalized_driving_lane        Int?
   normalized_ai_brake_difference Int?
-  tire_wear_front_left           Float? @db.Real
-  tire_wear_front_right          Float? @db.Real
-  tire_wear_rear_left            Float? @db.Real
-  tire_wear_rear_right           Float? @db.Real
+
+  accelerations                 Json
+  velocities                    Json
+  angular_velocities            Json
+  orientations                  Json
+  normalized_suspension_travels Json
+  tire_slips_ratios             Json
+  wheel_rotation_speeds         Json
+  wheel_on_rumble_strips        Json
+  wheel_in_puddles              Json
+  surface_rumbles               Json
+  tire_slip_angles              Json
+  tire_combined_slips           Json
+  suspension_travel_meters      Json
+
+  tire_temperatures Json?
+  tire_wears        Json?
+  positions         Json?
 
   user User @relation(fields: [user_id], references: [id])
 
-  @@unique([user_id, game_type, date_time], name: "forza_telemetry_user_id_game_type_date_time_pkey")
+  @@id([user_id, game_type, date_time])
   @@map("forza_telemetry")
 }

@@ -10,7 +10,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/api_server",
-        "command": "cross-env CARGO_TARGET_DIR=../../dist/target/api_server cargo watch -c -w src -x \"run --color always\""
+        "command": "cross-env CARGO_TARGET_DIR=../../dist/target/api_server cargo watch -c -w src -x \"run --color always --verbose\""
       }
     },
     "build": {

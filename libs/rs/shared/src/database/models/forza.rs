@@ -5,6 +5,8 @@ use bincode::{Decode, Encode};
 use binrw::BinRead;
 use chrono::NaiveDateTime;
 #[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
+#[cfg(feature = "db")]
 use diesel::prelude::*;
 #[cfg(feature = "db")]
 use diesel_derive_enum::DbEnum;
@@ -40,6 +42,145 @@ pub enum ForzaType {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaOrientationData {
+    pub yaw: f32,
+    pub pitch: f32,
+    pub roll: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaAccelerationData {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaVelocityData {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaAngularVelocityData {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaSuspensionTravelData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaTireSlipRatioData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaWheelRotationSpeedData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaWheelOnRumbleStripData {
+    pub fl: bool,
+    pub fr: bool,
+    pub rl: bool,
+    pub rr: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaWheelInPuddleData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaSurfaceRumbleData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaTireSlipAngleData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaTireCombinedSlipData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaSuspensionTravelMeterData {
+    pub fl: f32,
+    pub fr: f32,
+    pub rl: f32,
+    pub rr: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaPositionData {
+    pub x: Option<f32>,
+    pub y: Option<f32>,
+    pub z: Option<f32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaTireTemperatureData {
+    pub fl: Option<f32>,
+    pub fr: Option<f32>,
+    pub rl: Option<f32>,
+    pub rr: Option<f32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
+pub struct ForzaTireWearData {
+    pub fl: Option<f32>,
+    pub fr: Option<f32>,
+    pub rl: Option<f32>,
+    pub rr: Option<f32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(
     feature = "db",
     derive(Insertable, Selectable, Queryable, Identifiable, Associations)
@@ -55,91 +196,21 @@ pub struct ForzaTelemetry {
     pub date_time: NaiveDateTime,
     pub is_race_on: bool,
 
-    pub car_id: i32,
-    pub car_class: ForzaCarClass,
-    pub car_performance_index: i32,
     pub drive_type: ForzaDriveType,
+    pub car_class: ForzaCarClass,
+    pub car_id: i32,
+    pub car_performance_index: i32,
     pub num_cylinders: i32,
-    pub track_id: Option<i32>,
 
     pub engine_max_rpm: f32,
     pub engine_idle_rpm: f32,
     pub engine_current_rpm: f32,
 
-    pub acceleration_x: f32,
-    pub acceleration_y: f32,
-    pub acceleration_z: f32,
-
-    pub velocity_x: f32,
-    pub velocity_y: f32,
-    pub velocity_z: f32,
-
-    pub angular_velocity_x: f32,
-    pub angular_velocity_y: f32,
-    pub angular_velocity_z: f32,
-
-    pub yaw: f32,
-    pub pitch: f32,
-    pub roll: f32,
-
-    pub normalized_suspension_travel_front_left: f32,
-    pub normalized_suspension_travel_front_right: f32,
-    pub normalized_suspension_travel_rear_left: f32,
-    pub normalized_suspension_travel_rear_right: f32,
-
-    pub tire_slip_ratio_front_left: f32,
-    pub tire_slip_ratio_front_right: f32,
-    pub tire_slip_ratio_rear_left: f32,
-    pub tire_slip_ratio_rear_right: f32,
-
-    pub wheel_rotation_speed_front_left: f32,
-    pub wheel_rotation_speed_front_right: f32,
-    pub wheel_rotation_speed_rear_left: f32,
-    pub wheel_rotation_speed_rear_right: f32,
-
-    pub wheel_on_rumble_strip_front_left: bool,
-    pub wheel_on_rumble_strip_front_right: bool,
-    pub wheel_on_rumble_strip_rear_left: bool,
-    pub wheel_on_rumble_strip_rear_right: bool,
-
-    pub wheel_in_puddle_front_left: f32,
-    pub wheel_in_puddle_front_right: f32,
-    pub wheel_in_puddle_rear_left: f32,
-    pub wheel_in_puddle_rear_right: f32,
-
-    pub surface_rumble_front_left: f32,
-    pub surface_rumble_front_right: f32,
-    pub surface_rumble_rear_left: f32,
-    pub surface_rumble_rear_right: f32,
-
-    pub tire_slip_angle_front_left: f32,
-    pub tire_slip_angle_front_right: f32,
-    pub tire_slip_angle_rear_left: f32,
-    pub tire_slip_angle_rear_right: f32,
-
-    pub tire_combined_slip_front_left: f32,
-    pub tire_combined_slip_front_right: f32,
-    pub tire_combined_slip_rear_left: f32,
-    pub tire_combined_slip_rear_right: f32,
-
-    pub suspension_travel_meters_front_left: f32,
-    pub suspension_travel_meters_front_right: f32,
-    pub suspension_travel_meters_rear_left: f32,
-    pub suspension_travel_meters_rear_right: f32,
-
-    pub position_x: Option<f32>,
-    pub position_y: Option<f32>,
-    pub position_z: Option<f32>,
+    pub track_id: Option<i32>,
 
     pub speed: Option<f32>,
     pub power: Option<f32>,
     pub torque: Option<f32>,
-
-    pub tire_temp_front_left: Option<f32>,
-    pub tire_temp_front_right: Option<f32>,
-    pub tire_temp_rear_left: Option<f32>,
-    pub tire_temp_rear_right: Option<f32>,
-
     pub boost: Option<f32>,
     pub fuel: Option<f32>,
     pub distance_traveled: Option<f32>,
@@ -149,7 +220,7 @@ pub struct ForzaTelemetry {
     pub current_lap: Option<f32>,
     pub current_race_time: Option<f32>,
     pub lap_number: Option<i32>,
-    pub position: Option<i32>,
+    pub race_position: Option<i32>,
 
     pub acceleration: Option<i32>,
     pub brake: Option<i32>,
@@ -161,10 +232,22 @@ pub struct ForzaTelemetry {
     pub normalized_driving_lane: Option<i32>,
     pub normalized_ai_brake_difference: Option<i32>,
 
-    pub tire_wear_front_left: Option<f32>,
-    pub tire_wear_front_right: Option<f32>,
-    pub tire_wear_rear_left: Option<f32>,
-    pub tire_wear_rear_right: Option<f32>,
+    pub accelerations: ForzaAccelerationData,
+    pub velocities: ForzaVelocityData,
+    pub angular_velocities: ForzaAngularVelocityData,
+    pub orientations: ForzaOrientationData,
+    pub normalized_suspension_travels: ForzaSuspensionTravelData,
+    pub tire_slips_ratios: ForzaTireSlipRatioData,
+    pub wheel_rotation_speeds: ForzaWheelRotationSpeedData,
+    pub wheel_on_rumble_strips: ForzaWheelOnRumbleStripData,
+    pub wheel_in_puddles: ForzaWheelInPuddleData,
+    pub surface_rumbles: ForzaSurfaceRumbleData,
+    pub tire_slip_angles: ForzaTireSlipAngleData,
+    pub tire_combined_slips: ForzaTireCombinedSlipData,
+    pub suspension_travel_meters: ForzaSuspensionTravelMeterData,
+    pub positions: Option<ForzaPositionData>,
+    pub tire_temperatures: Option<ForzaTireTemperatureData>,
+    pub tire_wears: Option<ForzaTireWearData>,
 }
 
 #[non_exhaustive]

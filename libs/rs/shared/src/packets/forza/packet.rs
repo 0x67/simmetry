@@ -249,7 +249,7 @@ pub struct ForzaPacket {
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 302))]
-    pub position: Option<u8>,
+    pub race_position: Option<u8>,
 
     #[br(if(packet_size >= FM7_DASH_PACKET_SIZE))]
     #[br(seek_before = SeekFrom::Start(get_offset(packet_size) + 303))]

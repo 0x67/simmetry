@@ -98,7 +98,7 @@ pub async fn cmd_create_udp_listener(
     //     .await;
     // }
 
-    // handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
+    handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
 
     Ok(UdpSuccessResponse {
         message: format!("UDP listener created on port {}", payload.port),
@@ -209,9 +209,9 @@ async fn create_udp_listener(
                                     }
                                 }
 
-                                // if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                                //     warn!("WS queue is full, dropping oldest packet");
-                                // }
+                                if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                    warn!("WS queue is full, dropping oldest packet");
+                                }
                                 // if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
                                 //     warn!("UDP queue is full, dropping oldest packet");
                                 // }
