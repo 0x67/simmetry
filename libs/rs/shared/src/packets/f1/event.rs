@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use binrw::BinRead;
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 
 use crate::{
     packets::f1::enums::{ButtonStatus, MAX_NUM_CARS},
@@ -7,6 +10,99 @@ use crate::{
 };
 
 use super::enums::{InfringementType, PenaltyType, SafetyCarEventType, SafetyCarType};
+
+#[non_exhaustive]
+#[derive(
+    BinRead,
+    Display,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Copy,
+    Clone,
+    Debug,
+    Hash,
+    Serialize,
+    Deserialize,
+    EnumString,
+)]
+#[br(little, repr(u8))]
+pub enum EventCode {
+    /// Session started.
+    #[strum(serialize = "SSTA")]
+    SSTA,
+    /// Session ended.
+    #[strum(serialize = "SEND")]
+    SEND,
+    /// Fastest lap.
+    #[strum(serialize = "FTLP")]
+    FTLP,
+    /// Retirement.
+    #[strum(serialize = "RTMT")]
+    RTMT,
+    /// DRS enabled.
+    #[strum(serialize = "DRSE")]
+    DRSE,
+    /// DRS disabled.
+    #[strum(serialize = "DRSD")]
+    DRSD,
+    /// Teammate in pits.
+    #[strum(serialize = "TMPT")]
+    TMPT,
+    /// Chequered flag.
+    #[strum(serialize = "CHQF")]
+    CHQF,
+    /// Race winner.
+    #[strum(serialize = "RCWN")]
+    RCWN,
+    /// Penalty.
+    #[strum(serialize = "PENA")]
+    PENA,
+    /// Speed trap.
+    #[strum(serialize = "SPTP")]
+    SPTP,
+    /// Start lights.
+    #[strum(serialize = "STLG")]
+    STLG,
+    /// Lights out.
+    #[strum(serialize = "LGOT")]
+    LGOT,
+    /// Drive through served.
+    #[strum(serialize = "DTSV")]
+    DTSV,
+    /// Stop-go served.
+    #[strum(serialize = "SGSV")]
+    SGSV,
+    /// Flashback.
+    #[strum(serialize = "FLBK")]
+    FLBK,
+    /// Buttons.
+    #[strum(serialize = "BUTN")]
+    BUTN,
+    /// Red flag.
+    #[strum(serialize = "RDFL")]
+    RDFL,
+    /// Overtake.
+    #[strum(serialize = "OVTK")]
+    OVTK,
+    /// Safety car.
+    #[strum(serialize = "SCAR")]
+    SCAR,
+    /// Collision.
+    #[strum(serialize = "COLL")]
+    COLL,
+}
+
+impl EventCode {
+    pub fn from_bytes(bytes: [u8; 4]) -> Result<Self, String> {
+        let code = String::from_utf8(bytes.to_vec()).unwrap();
+        match EventCode::from_str(&code) {
+            Ok(event_code) => Ok(event_code),
+            Err(_) => Err(format!("Invalid event code: {}", code)),
+        }
+    }
+}
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]

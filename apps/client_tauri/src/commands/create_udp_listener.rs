@@ -2,7 +2,12 @@ use crate::app_state::AppState;
 use crate::commands::lib::{UdpErrorResponse, UdpSuccessResponse};
 use crate::ws_client::create_ws_client;
 use rmp_serde;
-use rs_shared::{constants::GameType, packets::forza::parse_forza_packet, WebsocketPayload};
+use rs_shared::{
+    constants::GameType,
+    packets::f1::{event::EventCode, parse_f1_packet},
+    packets::forza::parse_forza_packet,
+    WebsocketPayload,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     net::{IpAddr, SocketAddr},
@@ -71,8 +76,8 @@ pub async fn cmd_create_udp_listener(
 
     let _ = create_ws_client(payload.game_type, app_handle.clone()).await;
 
-    let (ws_tx, ws_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
-    let (udp_tx, udp_rx) = channel::<(Vec<u8>, SocketAddr)>(1000);
+    let (ws_tx, ws_rx) = channel::<(Vec<u8>, SocketAddr)>(3600);
+    let (udp_tx, udp_rx) = channel::<(Vec<u8>, SocketAddr)>(3600);
 
     create_udp_listener(
         payload.clone(),
@@ -82,18 +87,18 @@ pub async fn cmd_create_udp_listener(
     )
     .await;
 
-    if let Some(forward_hosts) = payload.forward_hosts {
-        handle_packets_forwarding(
-            payload.port,
-            payload.game_type,
-            forward_hosts,
-            app_handle.clone(),
-            udp_rx,
-        )
-        .await;
-    }
+    // if let Some(forward_hosts) = payload.forward_hosts {
+    //     handle_packets_forwarding(
+    //         payload.port,
+    //         payload.game_type,
+    //         forward_hosts,
+    //         app_handle.clone(),
+    //         udp_rx,
+    //     )
+    //     .await;
+    // }
 
-    handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
+    // handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
 
     Ok(UdpSuccessResponse {
         message: format!("UDP listener created on port {}", payload.port),
@@ -163,7 +168,7 @@ async fn create_udp_listener(
 
                                 match game_type {
                                     GameType::FH4 | GameType::FH5 | GameType::FM7 | GameType::FM8 => {
-                                        let decoded_packet = match parse_forza_packet(&sliced_buf) {
+                                        let packet = match parse_forza_packet(&sliced_buf) {
                                             Ok(packet) => packet,
                                             Err(e) => {
                                                 error!("Failed to parse Forza packet: {}", e);
@@ -171,9 +176,32 @@ async fn create_udp_listener(
                                             }
                                         };
 
-                                        if !decoded_packet.is_race_on {
+                                        if !packet.is_race_on {
                                             continue;
                                         }
+                                    }
+                                    GameType::F12022 | GameType::F12023 | GameType::F12024 => {
+                                        let packet = match parse_f1_packet(&sliced_buf) {
+                                            Ok(packet) => packet,
+                                            Err(e) => {
+                                                error!("Failed to parse F1 packet: {}", e);
+                                                continue;
+                                            }
+                                        };
+
+
+
+                                        // if packet.header.session_uid == 0 {
+                                        //     continue;
+                                        // }
+
+                                        // if let Some(ref event) = packet.event {
+                                        //   if event.code == EventCode::BUTN {
+                                        //       continue;
+                                        //   }
+                                        // }
+
+                                        info!("Packet: {:?}", serde_json::to_string(&packet).unwrap());
                                     }
                                     _ => {
                                         warn!("Unsupported game type: {}", game_type);
@@ -181,12 +209,12 @@ async fn create_udp_listener(
                                     }
                                 }
 
-                                if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                                    warn!("WS queue is full, dropping oldest packet");
-                                }
-                                if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                                    warn!("UDP queue is full, dropping oldest packet");
-                                }
+                                // if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                //     warn!("WS queue is full, dropping oldest packet");
+                                // }
+                                // if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                //     warn!("UDP queue is full, dropping oldest packet");
+                                // }
                             }
                             // false positive
                             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {

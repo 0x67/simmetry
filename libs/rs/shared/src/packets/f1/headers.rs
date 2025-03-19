@@ -80,7 +80,7 @@ pub struct F1PacketHeader {
     /// Unique identifier for the session
     pub session_uid: u64,
     /// Session timestamp
-    pub session_time: f64,
+    pub session_time: f32,
     /// Identifier for the frame the data was retrieved on
     pub frame_identifier: u32,
     /// Identifier for the frame the data was retrieved on, don't go back after flashback

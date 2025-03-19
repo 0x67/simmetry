@@ -49,7 +49,10 @@ pub async fn create_ws_client(
         })
         .on("pong", move |_, _| {
             let game_type = game_type.clone();
-            async move { info!("Event: Pong received. {}", game_type) }.boxed()
+            async move {
+                // info!("Event: Pong received. {}", game_type);
+            }
+            .boxed()
         })
         .connect()
         .await

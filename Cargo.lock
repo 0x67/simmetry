@@ -119,6 +119,7 @@ dependencies = [
  "futures-util",
  "hyper",
  "hyper-util",
+ "num_cpus",
  "once_cell",
  "rand 0.9.0",
  "redis",

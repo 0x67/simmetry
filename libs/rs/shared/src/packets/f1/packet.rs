@@ -11,7 +11,7 @@ use super::{
         SafetyCarExperience, SafetyCarIntensity, SafetyCarStatus, SessionLength, SpeedUnit,
         SurfaceSimType, TemperatureUnit, TrackId, TyreTemperature, Weather, MAX_NUM_CARS,
     },
-    event::EventDetails,
+    event::{EventCode, EventDetails},
     final_classification::FinalClassificationData,
     headers::{F1PacketHeader, F1PacketId},
     laps::LapData,
@@ -422,10 +422,10 @@ pub struct F1PacketLaps {
 pub struct F1PacketEvent {
     /// 4-letter event code.
     #[br(
-        try_map(|bytes: [u8; 4]| String::from_utf8(bytes.to_vec())),
+        try_map(|bytes: [u8; 4]| EventCode::from_bytes(bytes)),
         restore_position
     )]
-    pub code: String,
+    pub code: EventCode,
     /// Extra data for this event.
     #[br(args(packet_format))]
     pub details: EventDetails,

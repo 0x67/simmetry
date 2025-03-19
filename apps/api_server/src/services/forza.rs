@@ -12,7 +12,7 @@ impl ForzaService {
         Self { pool }
     }
 
-    pub async fn create_forza_data(
+    pub async fn _create_forza_data(
         &self,
         data: ForzaData,
     ) -> Result<ForzaData, diesel::result::Error> {
@@ -43,5 +43,39 @@ impl ForzaService {
             })??;
 
         Ok(result)
+    }
+
+    pub async fn create_forza_data_batch(
+        &self,
+        data: Vec<ForzaData>,
+    ) -> Result<(), diesel::result::Error> {
+        use rs_shared::database::schema::forza_data;
+
+        let pool = self.pool.clone();
+
+        let conn = pool.get().await.map_err(|e| {
+            eprintln!("Failed to get database connection: {:?}", e);
+            diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                Box::new(e.to_string()),
+            )
+        })?;
+
+        let _ = conn
+            .interact(move |conn| {
+                diesel::insert_into(forza_data::table)
+                    .values(data)
+                    .execute(conn)
+            })
+            .await
+            .map_err(|e| {
+                eprintln!("Interact error: {:?}", e);
+                diesel::result::Error::DatabaseError(
+                    diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                    Box::new(e.to_string()),
+                )
+            })?;
+
+        Ok(())
     }
 }

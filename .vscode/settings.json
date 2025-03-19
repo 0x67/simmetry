@@ -38,5 +38,5 @@
     "yaml",
     "toml"
   ],
-  "oxc.enable": true
+  "oxc.enable": false
 }

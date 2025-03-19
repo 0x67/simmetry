@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use crossbeam_channel::Sender;
+use crate::services::forza::ForzaService;
 use deadpool_diesel::postgres::Pool;
 use rs_shared::database::models::forza::ForzaData;
-
-use crate::services::forza::ForzaService;
+use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: Pool,
+    pub redis_client: redis::Client,
+    pub db_pool: Pool,
     pub forza_service: Arc<ForzaService>,
-    pub forza_data_sender: Sender<ForzaData>,
+    pub forza_data_sender: UnboundedSender<ForzaData>,
 }
