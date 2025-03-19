@@ -2,7 +2,7 @@ use crate::app_state::AppState;
 use rmpv::Value;
 use rs_shared::{
     constants::GameType,
-    database::models::forza::{ForzaData, ForzaType},
+    database::models::forza::{ForzaTelemetry, ForzaType},
     packets::forza::parse_forza_packet,
     WebsocketPayload,
 };
@@ -22,7 +22,7 @@ async fn forza_socket<A: Adapter>(
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
 
-    let forza_data_sender = state.forza_data_sender.clone();
+    let forza_telemetry_sender = state.forza_telemetry_sender.clone();
 
     socket.on("ping", |socket: SocketRef<A>| {
         info!("Pong received for {:?} namespace", socket.ns());
@@ -34,8 +34,9 @@ async fn forza_socket<A: Adapter>(
             let parsed_msgpack = rmp_serde::from_slice::<WebsocketPayload>(&data).unwrap();
 
             if let Ok(forza_packet) = parse_forza_packet(&parsed_msgpack.data) {
-                let insert_forza_data = ForzaData {
+                let insert_forza_telemetry = ForzaTelemetry {
                     id: Uuid::now_v7().to_string(),
+                    user_id: "".to_string(),
                     game_type: ForzaType::FH5,
                     date_time: chrono::Utc::now().naive_utc(),
                     is_race_on: forza_packet.is_race_on,
@@ -142,7 +143,7 @@ async fn forza_socket<A: Adapter>(
                     tire_wear_rear_right: forza_packet.tire_wear_rear_right,
                 };
 
-                forza_data_sender.send(insert_forza_data).unwrap();
+                forza_telemetry_sender.send(insert_forza_telemetry).unwrap();
             }
         }
     });
@@ -177,10 +178,10 @@ async fn forza_socket<A: Adapter>(
 pub async fn create_forza_namespace(
     io: SocketIo<CustomRedisAdapter<Emitter, RedisDriver>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let _ = io.ns(GameType::FH4.to_string(), forza_socket).await?;
-    let _ = io.ns(GameType::FH5.to_string(), forza_socket).await?;
-    let _ = io.ns(GameType::FM7.to_string(), forza_socket).await?;
-    let _ = io.ns(GameType::FM8.to_string(), forza_socket).await?;
+    let _ = io.ns(format!("/{}", GameType::FH4), forza_socket).await?;
+    let _ = io.ns(format!("/{}", GameType::FH5), forza_socket).await?;
+    let _ = io.ns(format!("/{}", GameType::FM7), forza_socket).await?;
+    let _ = io.ns(format!("/{}", GameType::FM8), forza_socket).await?;
 
     Ok(())
 }

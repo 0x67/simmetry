@@ -1,9 +1,23 @@
 diesel::table! {
     use diesel::sql_types::*;
+
+    users (id) {
+        id -> Text,
+        name -> Text,
+        email -> Text,
+        password -> Text,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
     use crate::database::models::forza::export::{ForzaType, ForzaCarClass, ForzaDriveType};
 
-    forza_data (id) {
+    forza_telemetry (id) {
         id -> Text,
+        user_id -> Text,
         game_type -> ForzaType,
         date_time -> Timestamptz,
         is_race_on -> Bool,
@@ -119,3 +133,6 @@ diesel::table! {
         tire_wear_rear_right -> Nullable<Float>,
     }
 }
+
+diesel::joinable!(forza_telemetry -> users (user_id));
+diesel::allow_tables_to_appear_in_same_query!(users, forza_telemetry);

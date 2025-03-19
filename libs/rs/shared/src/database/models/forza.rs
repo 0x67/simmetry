@@ -1,5 +1,6 @@
+use crate::database::models::user::User;
 #[cfg(feature = "db")]
-use crate::database::schema::forza_data;
+use crate::database::schema::forza_telemetry;
 use bincode::{Decode, Encode};
 use binrw::BinRead;
 use chrono::NaiveDateTime;
@@ -38,15 +39,18 @@ pub enum ForzaType {
     FM8,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(
     feature = "db",
-    derive(Insertable, Selectable, Queryable, Identifiable)
+    derive(Insertable, Selectable, Queryable, Identifiable, Associations)
 )]
-#[cfg_attr(feature = "db", diesel(table_name = forza_data))]
+#[cfg_attr(feature = "db", diesel(table_name = forza_telemetry))]
 #[cfg_attr(feature = "db", diesel(check_for_backend(diesel::pg::Pg)))]
-pub struct ForzaData {
+#[cfg_attr(feature = "db", diesel(belongs_to(User)))]
+#[cfg_attr(feature = "db", diesel(primary_key(user_id, game_type, date_time)))]
+pub struct ForzaTelemetry {
     pub id: String,
+    pub user_id: String,
     pub game_type: ForzaType,
     pub date_time: NaiveDateTime,
     pub is_race_on: bool,

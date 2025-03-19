@@ -64,8 +64,8 @@ model ForzaTelemetry {
   car_performance_index Int            @db.Integer()
   drive_type            ForzaDriveType
   track_id              Int?           @db.Integer()
+  num_cylinders         Int            @db.Integer()
 
-  num_cylinders      Int   @db.Integer()
   engine_max_rpm     Float @db.Real
   engine_idle_rpm    Float @db.Real
   engine_current_rpm Float @db.Real

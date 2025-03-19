@@ -1,6 +1,6 @@
 use deadpool_diesel::postgres::Pool;
 use diesel::RunQueryDsl;
-use rs_shared::database::models::forza::ForzaData;
+use rs_shared::database::models::forza::ForzaTelemetry;
 
 #[derive(Clone)]
 pub struct ForzaService {
@@ -12,11 +12,11 @@ impl ForzaService {
         Self { pool }
     }
 
-    pub async fn _create_forza_data(
+    pub async fn _create_forza_telemetry(
         &self,
-        data: ForzaData,
-    ) -> Result<ForzaData, diesel::result::Error> {
-        use rs_shared::database::schema::forza_data;
+        data: ForzaTelemetry,
+    ) -> Result<ForzaTelemetry, diesel::result::Error> {
+        use rs_shared::database::schema::forza_telemetry;
 
         let pool = self.pool.clone();
 
@@ -29,9 +29,9 @@ impl ForzaService {
         })?;
         let result = conn
             .interact(move |conn| {
-                diesel::insert_into(forza_data::table)
+                diesel::insert_into(forza_telemetry::table)
                     .values(data)
-                    .get_result::<ForzaData>(conn)
+                    .get_result::<ForzaTelemetry>(conn)
             })
             .await
             .map_err(|e| {
@@ -45,11 +45,11 @@ impl ForzaService {
         Ok(result)
     }
 
-    pub async fn create_forza_data_batch(
+    pub async fn create_forza_telemetry_batch(
         &self,
-        data: Vec<ForzaData>,
+        data: Vec<ForzaTelemetry>,
     ) -> Result<(), diesel::result::Error> {
-        use rs_shared::database::schema::forza_data;
+        use rs_shared::database::schema::forza_telemetry;
 
         let pool = self.pool.clone();
 
@@ -63,7 +63,7 @@ impl ForzaService {
 
         let _ = conn
             .interact(move |conn| {
-                diesel::insert_into(forza_data::table)
+                diesel::insert_into(forza_telemetry::table)
                     .values(data)
                     .execute(conn)
             })
