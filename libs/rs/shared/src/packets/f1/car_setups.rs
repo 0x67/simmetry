@@ -1,9 +1,12 @@
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct CarSetupData {
     /// Front wing aero.
     pub front_wing: u8,

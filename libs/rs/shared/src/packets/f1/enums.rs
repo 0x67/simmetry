@@ -3,6 +3,9 @@ use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
+#[cfg(feature = "db")]
+use diesel_derive_enum::DbEnum;
+
 pub(crate) const MAX_NUM_CARS: usize = 22;
 
 /// Unique identifier of the type of this packet.
@@ -986,6 +989,8 @@ bitflags! {
     Serialize,
     Deserialize,
 )]
+#[cfg_attr(feature = "db", derive(DbEnum))]
+#[cfg_attr(feature = "db", DbValueStyle = "verbatim")]
 #[br(little, repr(u8))]
 pub enum MfdPanelIndex {
     CarSetup = 0,
@@ -1701,4 +1706,9 @@ pub enum SafetyCarEventType {
     Returning = 1,
     Returned = 2,
     ResumeRace = 3,
+}
+
+#[cfg(feature = "db")]
+pub(crate) mod export {
+    pub use super::MfdPanelIndexMapping as MfdPanelIndex;
 }

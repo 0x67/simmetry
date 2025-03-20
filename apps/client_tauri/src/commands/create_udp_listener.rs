@@ -4,12 +4,13 @@ use crate::ws_client::create_ws_client;
 use rmp_serde;
 use rs_shared::{
     constants::GameType,
-    packets::f1::{event::EventCode, parse_f1_packet},
+    packets::f1::{event::EventCode, headers::F1PacketId, parse_f1_packet},
     packets::forza::parse_forza_packet,
     WebsocketPayload,
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     net::{IpAddr, SocketAddr},
     str::FromStr,
     sync::Arc,
@@ -19,7 +20,12 @@ use tauri::{
     async_runtime::{channel, spawn, Sender},
     AppHandle, Manager,
 };
-use tokio::{net::UdpSocket, sync::mpsc, task::JoinSet, time::Duration};
+use tokio::{
+    net::UdpSocket,
+    sync::mpsc,
+    task::JoinSet,
+    time::{Duration, Instant},
+};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use uuid::{timestamp, ContextV7, Uuid};
 
@@ -30,7 +36,6 @@ struct QueuedMessage {
     added: SystemTime,
 }
 
-/// Assuming the data is sent at 60Hz, we can store only 10 secs of data
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CreateUdpListenerPayload {
     pub game_type: GameType,
@@ -87,16 +92,16 @@ pub async fn cmd_create_udp_listener(
     )
     .await;
 
-    // if let Some(forward_hosts) = payload.forward_hosts {
-    //     handle_packets_forwarding(
-    //         payload.port,
-    //         payload.game_type,
-    //         forward_hosts,
-    //         app_handle.clone(),
-    //         udp_rx,
-    //     )
-    //     .await;
-    // }
+    if let Some(forward_hosts) = payload.forward_hosts {
+        handle_packets_forwarding(
+            payload.port,
+            payload.game_type,
+            forward_hosts,
+            app_handle.clone(),
+            udp_rx,
+        )
+        .await;
+    }
 
     handle_ws_emitter(payload.game_type, app_handle.clone(), ws_rx).await;
 
@@ -145,8 +150,14 @@ async fn create_udp_listener(
         let token = token.clone();
         let socket = socket.clone();
         let app_handle = app_handle.clone();
+
         tracker.spawn(async move {
             let mut buf = [0; 2048];
+            let throttle_time = Duration::from_millis(100); // Adjust throttle interval as needed.
+
+            let mut f1_packet_last_sent_times: HashMap<F1PacketId, Instant> = HashMap::new();
+            let mut forza_last_sent = Instant::now() - throttle_time;
+
             loop {
                 tokio::select! {
                     _ = token.cancelled() => {
@@ -171,6 +182,7 @@ async fn create_udp_listener(
                                         let packet = match parse_forza_packet(&sliced_buf) {
                                             Ok(packet) => packet,
                                             Err(e) => {
+                                                #[cfg(any(debug_assertions))]
                                                 error!("Failed to parse Forza packet: {}", e);
                                                 continue;
                                             }
@@ -179,48 +191,71 @@ async fn create_udp_listener(
                                         if !packet.is_race_on {
                                             continue;
                                         }
+
+                                        let now = Instant::now();
+                                        // Throttle Forza packets regardless of their content.
+                                        if now.duration_since(forza_last_sent) < throttle_time {
+                                            continue;
+                                        }
+                                        forza_last_sent = now;
                                     }
                                     GameType::F12022 | GameType::F12023 | GameType::F12024 => {
                                         let packet = match parse_f1_packet(&sliced_buf) {
                                             Ok(packet) => packet,
                                             Err(e) => {
+                                                #[cfg(any(debug_assertions))]
                                                 error!("Failed to parse F1 packet: {}", e);
                                                 continue;
                                             }
                                         };
 
+                                        if packet.header.session_uid == 0 {
+                                            continue;
+                                        }
 
+                                        if let Some(ref event) = packet.event {
+                                          if event.code == EventCode::BUTN {
+                                              continue;
+                                          }
+                                        }
 
-                                        // if packet.header.session_uid == 0 {
-                                        //     continue;
-                                        // }
+                                        let now = Instant::now();
 
-                                        // if let Some(ref event) = packet.event {
-                                        //   if event.code == EventCode::BUTN {
-                                        //       continue;
-                                        //   }
-                                        // }
+                                        if !is_f1_packet_allowed(packet.header.packet_id) {
+                                            let last_sent_time = f1_packet_last_sent_times
+                                                .get(&packet.header.packet_id)
+                                                .copied()
+                                                .unwrap_or_else(|| Instant::now() - throttle_time);
 
-                                        info!("Packet: {:?}", serde_json::to_string(&packet).unwrap());
+                                            if now.duration_since(last_sent_time) < throttle_time {
+                                                continue;
+                                            }
+
+                                            f1_packet_last_sent_times.insert(packet.header.packet_id, now);
+                                        }
                                     }
                                     _ => {
+                                        #[cfg(any(debug_assertions))]
                                         warn!("Unsupported game type: {}", game_type);
                                         continue;
                                     }
                                 }
 
                                 if ws_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                    #[cfg(any(debug_assertions))]
                                     warn!("WS queue is full, dropping oldest packet");
                                 }
-                                // if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
-                                //     warn!("UDP queue is full, dropping oldest packet");
-                                // }
+                                if udp_tx.try_send((sliced_buf.clone(), src)).is_err() {
+                                    #[cfg(any(debug_assertions))]
+                                    warn!("UDP queue is full, dropping oldest packet");
+                                }
                             }
                             // false positive
                             Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                                 tokio::task::yield_now().await;
                             }
                             Err(e) => {
+                                #[cfg(any(debug_assertions))]
                                 error!("Error receiving packet: {}", e);
                                 break;
                             }
@@ -232,6 +267,22 @@ async fn create_udp_listener(
     }
 
     socket
+}
+
+fn is_f1_packet_allowed(packet_id: F1PacketId) -> bool {
+    match packet_id {
+        F1PacketId::CarDamage
+        | F1PacketId::TimeTrial
+        | F1PacketId::TyreSets
+        | F1PacketId::SessionHistory
+        | F1PacketId::FinalClassification
+        | F1PacketId::CarSetups
+        | F1PacketId::Participants
+        | F1PacketId::Event
+        | F1PacketId::Session
+        | F1PacketId::LobbyInfo => true,
+        _ => false,
+    }
 }
 
 async fn handle_ws_emitter(
@@ -255,27 +306,20 @@ async fn handle_ws_emitter(
         state.ws_emitter_tokens.insert(game_type, token.clone());
 
         tracker.spawn(async move {
-          // timer for 100ms tick (~10Hz)
-          // TODO: maybe later allow for dynamic tick rate
-          let mut interval = tokio::time::interval(Duration::from_millis(100));
-          // latest message
-          let mut latest_message: Option<(Vec<u8>, SocketAddr)> = None;
+            loop {
+                tokio::select! {
+                    _ = token.cancelled() => {
+                        let state = app_handle.state::<AppState>();
+                        let mut state = state.lock().await;
 
-          loop {
-              tokio::select! {
-                  _ = token.cancelled() => {
-                      let state = app_handle.state::<AppState>();
-                      let mut state = state.lock().await;
+                        state.ws_emitter_trackers.remove(&game_type);
+                        state.ws_emitter_tokens.remove(&game_type);
+                        state.ws_clients.remove(&game_type);
 
-                      state.ws_emitter_trackers.remove(&game_type);
-                      state.ws_emitter_tokens.remove(&game_type);
-                      state.ws_clients.remove(&game_type);
-
-                      break;
-                  }
-                  // Only emit the latest message
-                  _ = interval.tick() => {
-                      if let Some((buf, _src)) = latest_message.take() {
+                        break;
+                    }
+                    result = ws_rx.recv() => {
+                        if let Some((buf, _)) = result {
                           let ts = timestamp::Timestamp::now(ContextV7::new());
                           let (seconds, nanos) = ts.to_unix();
                           let ts_nanos: u128 = (seconds as u128) * 1_000_000_000 + (nanos as u128);
@@ -290,25 +334,21 @@ async fn handle_ws_emitter(
                           let ws_payload = match rmp_serde::to_vec(&payload) {
                               Ok(vec) => vec,
                               Err(e) => {
+                                  #[cfg(any(debug_assertions))]
                                   error!("Failed to serialize websocket payload: {}", e);
                                   continue;
                               }
                           };
 
                           if let Err(e) = ws_client.emit("message", ws_payload).await {
+                              #[cfg(any(debug_assertions))]
                               error!("Failed to emit WebSocket message: {}", e);
                           }
-                      }
-                  }
-                  // Continuously update the latest_message with incoming messages.
-                  result = ws_rx.recv() => {
-                      if let Some((buf, src)) = result {
-                          latest_message = Some((buf, src));
-                      }
-                  }
-              }
-          }
-      });
+                        }
+                    }
+                }
+            }
+        });
     }
 }
 
@@ -353,17 +393,18 @@ async fn handle_packets_forwarding(
                     result = udp_rx.recv() => {
                         if let Some((buf, _)) = result {
                           let tasks: JoinSet<_> = forward_hosts.iter().map(|host| {
-                            let socket = socket.clone();
-                            let buf = buf.clone();
-                            let host = host.clone();
+                          let socket = socket.clone();
+                          let buf = buf.clone();
+                          let host = host.clone();
 
-                            spawn(async move {
+                          spawn(async move {
                                 if let Err(e) = socket.send_to(&buf, &host).await {
-                                      error!("Failed to send packet to {}: {}", host, e);
-                                    }
-                                })
+                                    #[cfg(any(debug_assertions))]
+                                    error!("Failed to send packet to {}: {}", host, e);
+                                }
                             })
-                            .collect();
+                          })
+                          .collect();
 
                           tasks.join_all().await;
                         }

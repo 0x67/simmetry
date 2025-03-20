@@ -4,11 +4,14 @@ use crate::{
 };
 
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 #[non_exhaustive]
 #[derive(BinRead, Eq, PartialEq, Ord, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct ParticipantsData {
     /// Whether the vehicle is controlled by AI.
     #[br(try_map(u8_to_bool))]

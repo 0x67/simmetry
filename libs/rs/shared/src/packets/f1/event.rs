@@ -1,13 +1,16 @@
 use std::str::FromStr;
 
-use binrw::BinRead;
-use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
-
 use crate::{
     packets::f1::enums::{ButtonStatus, MAX_NUM_CARS},
     utils::{u8_to_bool, u8_to_usize},
 };
+use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
+#[cfg(feature = "db")]
+use diesel_derive_enum::DbEnum;
+use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 
 use super::enums::{InfringementType, PenaltyType, SafetyCarEventType, SafetyCarType};
 
@@ -27,6 +30,8 @@ use super::enums::{InfringementType, PenaltyType, SafetyCarEventType, SafetyCarT
     Deserialize,
     EnumString,
 )]
+#[cfg_attr(feature = "db", derive(DbEnum))]
+#[cfg_attr(feature = "db", DbValueStyle = "verbatim")]
 #[br(little, repr(u8))]
 pub enum EventCode {
     /// Session started.
@@ -106,6 +111,7 @@ impl EventCode {
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(_packet_format: u16))]
 pub enum EventDetails {
     /// Sent when the session starts.
@@ -358,4 +364,9 @@ pub enum EventDetails {
         )]
         other_vehicle_index: usize,
     },
+}
+
+#[cfg(feature = "db")]
+pub(crate) mod export {
+    pub use super::EventCodeMapping as EventCode;
 }

@@ -1,4 +1,6 @@
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
@@ -19,6 +21,8 @@ use crate::utils::u8_to_usize;
     Deserialize,
     Display,
 )]
+#[cfg_attr(feature = "db", derive(DbEnum))]
+#[cfg_attr(feature = "db", DbValueStyle = "verbatim")]
 #[br(little, repr(u8))]
 pub enum F1PacketId {
     /// motion data for player's car
@@ -92,4 +96,9 @@ pub struct F1PacketHeader {
     /// Index of secondary player's car in the array (splitscreen), 255 if no second player
     #[br(map(u8_to_usize))]
     pub secondary_player_car_index: usize,
+}
+
+#[cfg(feature = "db")]
+pub(crate) mod export {
+    pub use super::F1PacketIdMapping as F1PacketId;
 }

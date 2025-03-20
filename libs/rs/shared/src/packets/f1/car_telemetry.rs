@@ -1,6 +1,9 @@
 use binrw::BinRead;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
+
 use crate::utils::u8_to_bool;
 
 use super::enums::{RevLights, Surface};
@@ -13,6 +16,7 @@ use super::enums::{RevLights, Surface};
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(_packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct CarTelemetryData {
     /// Speed of the car in kilometres per hour.
     pub speed: u16,

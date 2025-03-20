@@ -3,6 +3,9 @@ use crate::utils::u8_to_bool;
 use binrw::BinRead;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
+
 use super::enums::{
     ActualTyreCompound, DrsAllowed, ErsDeployMode, FuelMix, TractionControl, VehicleFiaFlag,
     VisualTyreCompound,
@@ -10,6 +13,7 @@ use super::enums::{
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct CarStatusData {
     /// How much traction control is enabled.

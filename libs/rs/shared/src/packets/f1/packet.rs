@@ -32,6 +32,8 @@ use super::{
 };
 use crate::utils::{u8_to_bool, u8_to_usize};
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 /// Structured representation of raw F1 game packet data that's
@@ -98,10 +100,15 @@ pub struct F1Packet {
 }
 
 /// The session packet includes details about the current session in progress.
-/// ## Example
+///
+/// ```
+/// Frequency: 2 per second
+/// Size: 753 bytes
+/// ```
 #[allow(clippy::struct_excessive_bools)]
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketSession {
     /// Current weather.
@@ -400,6 +407,11 @@ pub struct F1PacketSession {
 }
 
 /// Data about all the lap times of cars in the session.
+///
+/// ```
+/// Frequency: In game settings
+/// Size: 1285 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
@@ -416,6 +428,11 @@ pub struct F1PacketLaps {
 }
 
 /// Various notable events that happen during a session.
+///
+/// ```
+/// Frequency: When event occurs
+/// Size: 45 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
@@ -433,7 +450,18 @@ pub struct F1PacketEvent {
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
+/// The motion packet gives physics data for all the cars being driven.
+///
+/// N.B. For the normalised vectors below, to convert to float values divide by 32767.0f –
+/// 16-bit signed values are used to pack the data and on the assumption that direction values
+/// are always between -1.0f and 1.0f.
+///
+/// ```
+/// Frequency: In game settings
+/// Size: 1349 bytes
+/// ```
 pub struct F1PacketMotion {
     /// Motion data for all cars on track. Should have a size of 22.
     #[br(count(MAX_NUM_CARS), args{ inner: (packet_format,) })]
@@ -447,8 +475,14 @@ pub struct F1PacketMotion {
 /// Extended motion data for player's car. Available as a:
 /// - part of [`F1PacketMotion`](mod@crate::packets::f1::packet::F1PacketMotion) in the 2022 format
 /// - standalone packet from the 2023 format onwards
+///
+/// ```
+/// Frequency: In game settings
+/// Size: 237 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketMotionEx {
     /// Positions of suspension for each wheel.
@@ -544,6 +578,7 @@ pub struct F1PacketMotionEx {
 /// Data of participants in the session, mostly relevant for multiplayer.
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(
     little,
     import(packet_format: u16),
@@ -553,6 +588,15 @@ pub struct F1PacketMotionEx {
         num_active_cars
     )
 )]
+/// This is a list of participants in the race. If the vehicle is controlled by AI, then the name will be the driver name. If this is a multiplayer game, the names will be the Steam Id on PC, or the LAN name if appropriate.
+///
+/// N.B. on Xbox One, the names will always be the driver name, on PS4 the name will be the LAN name if
+/// playing a LAN game, otherwise it will be the driver name.
+///
+/// ```
+/// Frequency: Every 5 seconds
+/// Size: 1350 bytes
+/// ```
 pub struct F1PacketParticipants {
     /// Number of active cars in the session.
     #[br(map(u8_to_usize))]
@@ -567,8 +611,14 @@ pub struct F1PacketParticipants {
 /// Car setups for all cars in the race.
 /// In multiplayer games, other player cars will appear as blank.
 /// You will only be able to see your car setup and AI cars.
+///
+/// ```
+/// Frequency: 2 per second
+/// Size: 1133 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketCarSetups {
     /// Setup data for all cars on track. Should have a size of 22.
@@ -582,7 +632,13 @@ pub struct F1PacketCarSetups {
 
 /// Telemetry (such as speed, DRS, throttle application, etc.)
 /// for all cars in the race.
+///
+/// ```
+/// Frequency: In game settings
+/// Size: 1352 bytes
+/// ```
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketCarTelemetry {
     /// Telemetry data for all cars on track. Should have a size of 22.
@@ -604,8 +660,14 @@ pub struct F1PacketCarTelemetry {
 }
 
 /// Car status data for each car in the race.
+///
+/// ```
+/// Frequency: In game settings
+/// Size: 1239 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketCarStatus {
     /// Car status data for all cars. Should have a size of 22.
@@ -614,8 +676,14 @@ pub struct F1PacketCarStatus {
 }
 
 /// Final classification confirmation at the end of a race.
+///
+/// ```
+/// Frequency: When race is finished
+/// Size: 1020 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketFinalClassification {
     /// Number of cars in the final classification.
@@ -636,8 +704,14 @@ pub struct F1PacketFinalClassification {
 }
 
 /// Packet detailing all the players that are currently in a multiplayer lobby.
+///
+/// ```
+/// Frequency: 2 every seconds when in a multiplayer lobby
+/// Size: 1306 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketLobby {
     /// Number of players in the lobby.
@@ -658,9 +732,15 @@ pub struct F1PacketLobby {
 }
 
 /// Car damage parameters for all cars in the session.
+///
+/// ```
+/// Frequency: 10 per second
+/// Size: 953 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct F1PacketCarDamage {
     /// Car damage data. Should have a size of 22.
     #[br(count(MAX_NUM_CARS), args{ inner: (packet_format,) })]
@@ -668,8 +748,14 @@ pub struct F1PacketCarDamage {
 }
 
 /// Packet detailing lap and tyre data history for a given driver in the session.
+///
+/// ```
+/// Frequency: 20 per second but cycles for each car
+/// Size: 1460 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketSessionHistory {
     /// Index of the car this packet refers to.
@@ -731,8 +817,14 @@ pub struct F1PacketSessionHistory {
 
 /// In-depth details about tyre sets assigned to a vehicle during the session.
 /// Available from the 2023 format onwards.
+///
+/// ```
+/// Frequency: 20 per second but cycles for each car
+/// Size: 231 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(packet_format: u16))]
 pub struct F1PacketTyreSets {
     /// Index of the car this packet relates to.
@@ -755,8 +847,14 @@ pub struct F1PacketTyreSets {
 
 /// Extra information that's only relevant to time trial game mode.
 /// Available from the 2024 format onwards.
+///
+/// ```
+/// Frequency: 1 per second
+/// Size: 101 bytes
+/// ```
 #[non_exhaustive]
 #[derive(BinRead, Eq, PartialEq, Ord, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(_packet_format: u16))]
 pub struct F1PacketTimeTrial {
     /// Data set of player's best run this session.

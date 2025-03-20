@@ -15,9 +15,9 @@ const telemetryStatusColor = ref({
 
 const UDP_PAYLOAD = {
   forward_hosts: ['127.0.0.1:5300'],
-  port: 22024, // controller
+  port: 20777, // controller
   host: '0.0.0.0',
-  game_type: 'FH5',
+  game_type: 'F12024',
 };
 
 const handleClick = async () => {

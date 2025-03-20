@@ -79,3 +79,49 @@ diesel::table! {
 
 diesel::joinable!(forza_telemetry -> users (user_id));
 diesel::allow_tables_to_appear_in_same_query!(users, forza_telemetry);
+
+diesel::table! {
+  use diesel::sql_types::*;
+  use crate::database::models::f1::export::F1Type;
+  use crate::packets::f1::headers::export::F1PacketId;
+  use crate::packets::f1::event::export::EventCode;
+  use crate::packets::f1::enums::export::MfdPanelIndex;
+
+  f1_telemetry (session_id, user_id, game_type, date_time) {
+    session_id -> Int8,
+    user_id -> Text,
+    game_type -> F1Type,
+    date_time -> Timestamptz,
+    packet_type -> F1PacketId,
+    session_time -> Float,
+    player_car_index -> Int4,
+    secondary_player_car_index -> Int4,
+    num_active_cars -> Int4,
+    metadata -> Jsonb,
+    time_trial_pb_car_index -> Nullable<Int4>,
+    time_trial_rival_car_index -> Nullable<Int4>,
+    event_code -> Nullable<EventCode>,
+    event -> Nullable<Jsonb>,
+    motions -> Nullable<Array<Jsonb>>,
+    motion_extended -> Nullable<Jsonb>,
+    session -> Nullable<Jsonb>,
+    laps -> Nullable<Array<Jsonb>>,
+    participants -> Nullable<Array<Jsonb>>,
+    next_front_wing_value -> Nullable<Float>,
+    car_setups -> Nullable<Array<Jsonb>>,
+    mfd_panel_index -> Nullable<MfdPanelIndex>,
+    mfd_panel_index_secondary_player -> Nullable<MfdPanelIndex>,
+    suggested_gear -> Nullable<SmallInt>,
+    car_telemetry -> Nullable<Array<Jsonb>>,
+    car_status -> Nullable<Array<Jsonb>>,
+    final_classification -> Nullable<Array<Jsonb>>,
+    lobby -> Nullable<Array<Jsonb>>,
+    car_damage -> Nullable<Array<Jsonb>>,
+    session_history -> Nullable<Jsonb>,
+    tyre_sets -> Nullable<Jsonb>,
+    time_trial -> Nullable<Jsonb>,
+  }
+}
+
+diesel::joinable!(f1_telemetry -> users (user_id));
+diesel::allow_tables_to_appear_in_same_query!(users, f1_telemetry);

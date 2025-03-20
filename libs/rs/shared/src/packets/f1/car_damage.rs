@@ -1,4 +1,6 @@
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 use crate::utils::u8_to_bool;
@@ -6,6 +8,7 @@ use crate::utils::u8_to_bool;
 #[allow(clippy::struct_excessive_bools)]
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(_packet_format: u16))]
 pub struct CarDamageData {
     /// Tyre wear percentage for all wheels.

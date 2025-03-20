@@ -6,6 +6,9 @@ use crate::{
 use binrw::BinRead;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
+
 pub(super) const NUM_TYRE_SETS: usize = 20;
 
 #[non_exhaustive]
@@ -19,6 +22,7 @@ pub(super) const NUM_TYRE_SETS: usize = 20;
         wear
     )
 )]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct TyreSetData {
     /// Actual tyre compound.
     pub actual_tyre_compound: ActualTyreCompound,

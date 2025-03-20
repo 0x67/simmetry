@@ -4,12 +4,15 @@ use crate::{
 };
 
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 const MAX_NUM_TYRE_STINTS: usize = 8;
 
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 #[br(little, import(_packet_format: u16))]
 pub struct FinalClassificationData {
     /// Finishing position.

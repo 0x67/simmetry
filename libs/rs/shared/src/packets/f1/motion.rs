@@ -1,8 +1,11 @@
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(_packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct CarMotionData {
     /// World space X position in metres.
     pub world_position_x: f32,

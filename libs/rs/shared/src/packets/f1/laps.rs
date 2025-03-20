@@ -3,12 +3,15 @@ use crate::{
     utils::u8_to_bool,
 };
 use binrw::BinRead;
+#[cfg(feature = "db")]
+use derive_jsonb::AsJsonb;
 use serde::{Deserialize, Serialize};
 
 /// Lap data for a car on track.
 #[non_exhaustive]
 #[derive(BinRead, PartialEq, PartialOrd, Copy, Clone, Debug, Serialize, Deserialize)]
 #[br(little, import(packet_format: u16))]
+#[cfg_attr(feature = "db", derive(AsJsonb))]
 pub struct LapData {
     /// Last lap time in milliseconds.
     pub last_lap_time_ms: u32,

@@ -16,6 +16,11 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "cross-env CARGO_BUILD_TARGET_DIR=../../dist/target/client_tauri pnpm tauri build --verbose"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
       }
     },
     "test": {
