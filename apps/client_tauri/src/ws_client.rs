@@ -4,7 +4,7 @@ use rust_socketio::{
     asynchronous::{Client, ClientBuilder},
     TransportType,
 };
-use std::{sync::Arc, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 use tauri::{AppHandle, Manager};
 use tokio::time::sleep;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -15,7 +15,7 @@ pub async fn create_ws_client(
     game_type: GameType,
     app_handle: AppHandle,
 ) -> Arc<rust_socketio::asynchronous::Client> {
-    let url = "http://localhost:3002/";
+    let url = env::var("API_URL").unwrap();
 
     let game_type = game_type.clone();
 
@@ -50,7 +50,7 @@ pub async fn create_ws_client(
         .on("pong", move |_, _| {
             let game_type = game_type.clone();
             async move {
-                // info!("Event: Pong received. {}", game_type);
+                info!("Event: Pong received. {}", game_type);
             }
             .boxed()
         })
