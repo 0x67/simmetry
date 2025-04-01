@@ -12,7 +12,7 @@ bincode = { version = "2.0.1", features = ["serde", "derive"] }
 binrw = "0.14.1"
 bitflags = "2.9.0"
 chrono = { version = "0.4.40", features = ["serde"] }
-diesel = { optional = true, version = "2.2.8", features = [
+diesel = { optional = true, version = "2.2.8", default-features = false, features = [
   "postgres",
   "serde_json",
   "uuid",

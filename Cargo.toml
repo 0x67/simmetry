@@ -17,8 +17,9 @@ debug = true
 [workspace]
 resolver = '2'
 members = [
-	'apps/client_tauri',
-	'apps/api_server',
-	'libs/rs/shared',
-	'libs/rs/derive_jsonb',
+  'apps/client_tauri',
+  'apps/api_server',
+  'libs/rs/shared',
+  'libs/rs/derive_jsonb',
+  'apps/benchmark',
 ]

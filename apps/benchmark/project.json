@@ -1,0 +1,63 @@
+{
+  "name": "benchmark",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/benchmark/src",
+  "targets": {
+    "serve": {
+      "cache": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/benchmark",
+        "command": "cross-env CARGO_TARGET_DIR=../../dist/target/benchmark cargo watch -c -w src -x \"run --color always --verbose\""
+      }
+    },
+    "build": {
+      "cache": true,
+      "executor": "@monodon/rust:build",
+      "outputs": ["{options.target-dir}"],
+      "options": {
+        "target-dir": "dist/target/benchmark"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "test": {
+      "cache": true,
+      "executor": "@monodon/rust:test",
+      "outputs": ["{options.target-dir}"],
+      "options": {
+        "target-dir": "dist/target/benchmark"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    },
+    "lint": {
+      "cache": true,
+      "executor": "@monodon/rust:lint",
+      "outputs": ["{options.target-dir}"],
+      "options": {
+        "target-dir": "dist/target/benchmark"
+      }
+    },
+    "run": {
+      "executor": "@monodon/rust:run",
+      "outputs": ["{options.target-dir}"],
+      "options": {
+        "target-dir": "dist/target/benchmark"
+      },
+      "configurations": {
+        "production": {
+          "release": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
