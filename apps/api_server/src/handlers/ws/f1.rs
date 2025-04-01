@@ -72,9 +72,9 @@ async fn handle_f1_packet(
 ) {
     let parsed_msgpack = rmp_serde::from_slice::<WebsocketPayload>(&data).unwrap();
 
-    file_writer_sender
-        .send(parsed_msgpack.data.clone())
-        .unwrap();
+    // file_writer_sender
+    //     .send(parsed_msgpack.data.clone())
+    //     .unwrap();
 
     if let Ok(f1_packet) = parse_f1_packet(&parsed_msgpack.data) {
         let insert_f1_telemetry = F1Telemetry::from_udp_packet(

@@ -1,9 +1,11 @@
+mod app_config;
 mod app_state;
 mod handlers;
 mod services;
 mod setup;
 mod types;
 
+use app_config::APP_CONFIG;
 use axum::routing::get;
 use setup::{setup_app, setup_socketio};
 use tower::ServiceBuilder;
@@ -28,9 +30,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting server");
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3002").await.unwrap();
+    let port = APP_CONFIG.port.clone();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+        .await
+        .unwrap();
 
-    info!("Server started on port 3002");
+    info!("Server started on port {}", port);
     axum::serve(listener, app).await?;
 
     Ok(())

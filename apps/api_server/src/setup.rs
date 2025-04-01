@@ -1,4 +1,5 @@
 use crate::{
+    app_config::{AppConfig, APP_CONFIG},
     app_state::AppState,
     handlers::ws::{f1::create_f1_namespace, forza::create_forza_namespace},
     services::forza::ForzaService,
@@ -11,7 +12,7 @@ use rs_shared::database::models::{
 };
 use socketioxide::SocketIo as SocketIoBase;
 use socketioxide_redis::{RedisAdapter, RedisAdapterCtr};
-use std::{env, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::{
     fs::OpenOptions,
     io::AsyncWriteExt,
@@ -28,24 +29,24 @@ async fn setup_forza_receiver(forza_service: Arc<ForzaService>) -> UnboundedSend
         let mut interval = tokio::time::interval(Duration::from_secs(1));
         loop {
             tokio::select! {
-            Some(forza_telemetry) = forza_telemetry_receiver.recv() => {
-                buffer.push(forza_telemetry);
+                Some(forza_telemetry) = forza_telemetry_receiver.recv() => {
+                    buffer.push(forza_telemetry);
 
-                if buffer.len() >= 1000 {
-                    if let Err(e) = forza_service.create_forza_telemetry_batch(buffer.clone()).await {
-                        warn!("Error creating forza telemetry batch: {:?}", e);
+                    if buffer.len() >= 1000 {
+                        if let Err(e) = forza_service.create_forza_telemetry_batch(buffer.clone()).await {
+                            warn!("Error creating forza telemetry batch: {:?}", e);
+                        }
+                        buffer.clear();
                     }
-                    buffer.clear();
                 }
-            }
-            _ = interval.tick() => {
-                if !buffer.is_empty() {
-                    if let Err(e) = forza_service.create_forza_telemetry_batch(buffer.clone()).await {
-                        warn!("Error creating forza telemetry batch: {:?}", e);
+                _ = interval.tick() => {
+                    if !buffer.is_empty() {
+                        if let Err(e) = forza_service.create_forza_telemetry_batch(buffer.clone()).await {
+                            warn!("Error creating forza telemetry batch: {:?}", e);
+                        }
+                        buffer.clear();
                     }
-                    buffer.clear();
                 }
-            }
             }
         }
     });
@@ -66,9 +67,8 @@ async fn setup_f1_receiver() -> UnboundedSender<F1Telemetry> {
                 }
                 _ = interval.tick() => {
                     if !buffer.is_empty() {
-
-                        // TODO: save data
-                        buffer.clear();
+                          // TODO: save data
+                          buffer.clear();
                     }
                 }
             }
@@ -95,29 +95,25 @@ async fn setup_file_writer() -> UnboundedSender<Vec<u8>> {
 
         loop {
             tokio::select! {
-                Some(mut buf) = file_writer_receiver.recv() => {
-                    // Ensure each entry is exactly 2048 bytes
-                    if buf.len() < 2048 {
-                        buf.resize(2048, 0); // Pad with zeros
-                    }
-
-                    buffer.push(buf);
-                }
-                _ = interval.tick() => {
-                    if !buffer.is_empty() {
-
-
-
-
-                      for entry in &buffer {
-                          file.write_all(entry).await.expect("Failed to write to file");
+                  Some(mut buf) = file_writer_receiver.recv() => {
+                      // Ensure each entry is exactly 2048 bytes
+                      if buf.len() < 2048 {
+                          buf.resize(2048, 0); // Pad with zeros
                       }
 
-                      file.flush().await.expect("Failed to flush file");
+                      buffer.push(buf);
+                  }
+                  _ = interval.tick() => {
+                      if !buffer.is_empty() {
+                          for entry in &buffer {
+                              file.write_all(entry).await.expect("Failed to write to file");
+                          }
 
-                      buffer.clear(); // Reset buffer after writing
-                    }
-                }
+                          file.flush().await.expect("Failed to flush file");
+
+                          buffer.clear();
+                      }
+                  }
             }
         }
     });
@@ -128,8 +124,7 @@ async fn setup_file_writer() -> UnboundedSender<Vec<u8>> {
 async fn setup_redis() -> Result<(redis::Client, SocketIoRedisAdapter), Box<dyn std::error::Error>>
 {
     info!("Connecting to redis");
-    let redis_url = env::var("REDIS_URL").unwrap();
-
+    let redis_url = APP_CONFIG.redis_url.clone();
     let client = redis::Client::open(redis_url)?;
     let adapter = RedisAdapterCtr::new_with_redis(&client).await?;
 
@@ -138,8 +133,9 @@ async fn setup_redis() -> Result<(redis::Client, SocketIoRedisAdapter), Box<dyn 
 
 async fn setup_db() -> Result<Pool<Manager>, Box<dyn std::error::Error>> {
     info!("Connecting to database");
-    let db_url = env::var("SHADOW_DATABASE_URL").unwrap();
-    let manager = deadpool_diesel::postgres::Manager::new(db_url, deadpool_diesel::Runtime::Tokio1);
+    let database_url = APP_CONFIG.database_url.clone();
+    let manager =
+        deadpool_diesel::postgres::Manager::new(database_url, deadpool_diesel::Runtime::Tokio1);
     let pool = deadpool_diesel::postgres::Pool::builder(manager)
         .build()
         .unwrap();
@@ -148,6 +144,9 @@ async fn setup_db() -> Result<Pool<Manager>, Box<dyn std::error::Error>> {
 }
 
 pub async fn setup_app() -> Result<(AppState, SocketIoRedisAdapter), Box<dyn std::error::Error>> {
+    // verify environment variables
+    let _ = AppConfig::from_env()?;
+
     let (redis_client, adapter) = setup_redis().await.unwrap();
     let db_pool = setup_db().await.unwrap();
 
