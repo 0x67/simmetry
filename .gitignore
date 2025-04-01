@@ -16,7 +16,9 @@ node_modules
 *.launch
 .settings/
 *.sublime-workspace
+
 /temp
+!/temp/data-sample/
 
 # IDE - VSCode
 .vscode/*

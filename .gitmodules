@@ -1,0 +1,3 @@
+[submodule "temp/data-sample"]
+path = temp/data-sample
+url = https://github.com/0x67/sim-data-sample
